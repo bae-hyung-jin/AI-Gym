@@ -1,7 +1,14 @@
 fileFormatVersion: 2
 guid: 36078ab0369161e49a29d349ae3e0739
+AssetOrigin:
+  serializedVersion: 1
+  productId: 196526
+  packageName: First Person + Third Person | Character Controllers
+  packageVersion: 2.0.2
+  assetPath: Assets/Starter Assets/Runtime/ThirdPersonController/Character/Models/Armature.fbx
+  uploadId: 1032646
 ModelImporter:
-  serializedVersion: 20200
+  serializedVersion: 24600
   internalIDToNameTable:
   - first:
       74: 1827226128182048838
@@ -12,14 +19,14 @@ ModelImporter:
     materialName: 0
     materialSearch: 1
     materialLocation: 1
+    searchTexturesGlobally: 1
   animations:
     legacyGenerateAnimations: 4
     bakeSimulation: 0
     resampleCurves: 1
     optimizeGameObjects: 0
+    removeConstantScaleCurves: 0
     motionNodeName: 
-    rigImportErrors: 
-    rigImportWarnings: 
     animationImportErrors: 
     animationImportWarnings: 
     animationRetargetingWarnings: 
@@ -42,10 +49,14 @@ ModelImporter:
     addColliders: 0
     useSRGBMaterialColor: 1
     sortHierarchyByName: 1
+    preBakeConvexCollisionMesh: 0
+    preBakeTriangleCollisionMesh: 0
+    importPhysicalCameras: 1
     importVisibility: 1
     importBlendShapes: 1
     importCameras: 1
     importLights: 1
+    nodeNameCollisionStrategy: 0
     fileIdsGeneration: 2
     swapUVChannels: 0
     generateSecondaryUV: 0
@@ -57,6 +68,12 @@ ModelImporter:
     skinWeightsMode: 0
     maxBonesPerVertex: 4
     minBoneWeight: 0.001
+    optimizeBones: 1
+    generateMeshLods: 0
+    meshLodGenerationFlags: 0
+    maximumMeshLod: -1
+    importUVs: -1
+    importVertexColors: 1
     meshOptimizationFlags: -1
     indexFormat: 0
     secondaryUVAngleDistortion: 8
@@ -67,6 +84,7 @@ ModelImporter:
     secondaryUVMinObjectScale: 1
     secondaryUVPackMargin: 4
     useFileScale: 1
+    strictVertexDataChecks: 0
   tangentSpace:
     normalSmoothAngle: 60
     normalImportMode: 0
@@ -75,6 +93,7 @@ ModelImporter:
     legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
     blendShapeNormalImportMode: 1
     normalSmoothingSource: 0
+    calculateBlendshapeNormalsDeltaFromImportedNormals: 1
   referencedClips: []
   importAnimation: 0
   humanDescription:
@@ -505,23 +524,23 @@ ModelImporter:
         length: 0
         modified: 0
     skeleton:
-    - name: Mannequin(Clone)
+    - name: Armature(Clone)
       parentName: 
       position: {x: -0, y: 0, z: 0}
       rotation: {x: 0, y: -0, z: -0, w: 1}
       scale: {x: 1, y: 1, z: 1}
     - name: Geometry
-      parentName: Mannequin(Clone)
+      parentName: Armature(Clone)
       position: {x: -0, y: 0, z: 0}
       rotation: {x: 0, y: -0, z: -0, w: 1}
       scale: {x: 1, y: 1, z: 1}
-    - name: Mannequin_Mesh
+    - name: Armature_Mesh
       parentName: Geometry
       position: {x: -0, y: 0, z: 0}
       rotation: {x: 0, y: -0, z: -0, w: 1}
       scale: {x: 1, y: 1, z: 1}
     - name: Skeleton
-      parentName: Mannequin(Clone)
+      parentName: Armature(Clone)
       position: {x: -0, y: 0, z: 0}
       rotation: {x: 0, y: -0, z: -0, w: 1}
       scale: {x: 1, y: 1, z: 1}
@@ -828,7 +847,7 @@ ModelImporter:
     - name: Right_RingProximal
       parentName: Right_Hand
       position: {x: -0.00952738, y: -0.08161427, z: 0.012242128}
-      rotation: {x: -0.017649079, y: -0.6027014, z: -0.0040535578, w: 0.7977614}
+      rotation: {x: -0.017649077, y: -0.6027014, z: -0.0040535573, w: 0.7977614}
       scale: {x: 1, y: 1, z: 1}
     - name: Right_RingIntermediate
       parentName: Right_RingProximal
@@ -883,14 +902,9 @@ ModelImporter:
   humanoidOversampling: 1
   avatarSetup: 1
   addHumanoidExtraRootOnlyWhenUsingAvatar: 0
+  importBlendShapeDeformPercent: 0
+  remapMaterialsIfMaterialImportModeIsNone: 1
   additionalBone: 0
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 196526
-  packageName: First Person + Third Person | Character Controllers
-  packageVersion: 2.0.2
-  assetPath: Assets/Starter Assets/Runtime/ThirdPersonController/Character/Models/Armature.fbx
-  uploadId: 1032646
