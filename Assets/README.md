@@ -86,7 +86,6 @@ DoorSwitch               ← 오른쪽 벽면 스위치. DoorSwitch, Box Collide
 - 걷기 모션이 어색하면 `animator.SetFloat("Speed", ...)` 값을 조정한다 (걷기는 약 2, 달리기는 약 5.3 기준).
 
 **알아 둘 점**
-- `Esc` 처리에서 `Cursor.visible = false`로 되어 있어, 커서가 풀려도 **화살표가 보이지 않는다**. 화면의 UI를 누르려면 `true`로 바꿔야 한다.
 - `cameraTransform`이 비어 있으면 `Update`에서 오류가 난다.
 - 달리기, 앉기, 슬라이딩 모션 파라미터는 아직 전달하지 않는다.
 
@@ -212,7 +211,5 @@ DoorSwitch               ← 오른쪽 벽면 스위치. DoorSwitch, Box Collide
 ## 6. 알려진 문제와 할 일
 
 - [ ] 1인칭에서 모자 챙과 머리카락이 카메라에 보일 수 있다.
-- [ ] `Esc`로 커서를 풀면 화살표가 보이지 않는다 (`FPSController`의 `Cursor.visible`).
-- [ ] 씬에 `EventSystem`이 2개, `AudioListener`가 중복될 수 있다.
 - [ ] 문틀이 없다 (유리만 있음).
 - [ ] 신발이 축구화 모양이다.

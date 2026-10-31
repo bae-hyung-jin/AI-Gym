@@ -72,7 +72,7 @@ public class FPSController : MonoBehaviour
         if (kb.escapeKey.wasPressedThisFrame)
         {
             Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = false;
+            Cursor.visible = true;
         }
     }
 }
