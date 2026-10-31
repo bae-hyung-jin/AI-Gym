@@ -1,7 +1,7 @@
 # AI GYM — 프로젝트 README
 
 Unity 6 (6000.6.7f1) / URP / Input System 기반의 1인칭 헬스장 프로젝트입니다.
-이 문서는 직접 만든 스크립트 4개의 구조와 수정 방법을 정리한 것입니다.
+이 문서는 직접 만든 스크립트 5개의 구조와 수정 방법을 정리한 것입니다.
 
 ## 1. 조작법
 
@@ -21,6 +21,7 @@ Unity 6 (6000.6.7f1) / URP / Input System 기반의 1인칭 헬스장 프로젝�
 | `Assets/script/FPSController.cs` | 플레이어 이동·시점·애니메이션 |
 | `Assets/script/SlidingDoor.cs` | 슬라이딩 도어 |
 | `Assets/script/DoorSwitch.cs` | 도어 스위치 |
+| `Assets/script/AnimationEventReceiver.cs` | `EagleHuman`의 애니메이션 이벤트(`OnFootstep`, `OnLand`) 수신 |
 | `Assets/Editor/GitAutoCommit.cs` | 에디터 메뉴용 Git 도구 |
 | `Assets/Characters/EagleHuman.fbx` | 한화 이글스 유니폼 캐릭터 (Humanoid) |
 | `Assets/M/` | 직접 만든 Material (`GlassMat`, `SwitchMetalMat`, `SwitchLampMat` 등) |
