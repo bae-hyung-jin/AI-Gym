@@ -21,7 +21,7 @@ Unity 6 (6000.6.7f1) / URP / Input System 기반의 1인칭 헬스장 프로젝�
 | `Assets/script/FPSController.cs` | 플레이어 이동·시점·애니메이션 |
 | `Assets/script/SlidingDoor.cs` | 슬라이딩 도어 |
 | `Assets/script/DoorSwitch.cs` | 도어 스위치 |
-| `Assets/script/AnimationEventReceiver.cs` | `EagleHuman`의 애니메이션 이벤트(`OnFootstep`, `OnLand`) 수신 |
+| `Assets/script/AnimationEventReceiver.cs` | `EagleHuman`의 애니메이션 이벤트(`OnFootstep`, `OnLand`)를 받아 발소리·착지음 재생 |
 | `Assets/Editor/GitAutoCommit.cs` | 에디터 메뉴용 Git 도구 |
 | `Assets/Characters/EagleHuman.fbx` | 한화 이글스 유니폼 캐릭터 (Humanoid) |
 | `Assets/M/` | 직접 만든 Material (`GlassMat`, `SwitchMetalMat`, `SwitchLampMat` 등) |
@@ -62,12 +62,14 @@ DoorSwitch               ← 오른쪽 벽면 스위치. DoorSwitch, Box Collide
 | `jumpHeight` | 1.2 | 점프 높이 (m) |
 | `gravity` | -20 | 중력 가속도 (음수) |
 | `mouseSensitivity` | 0.1 | 마우스 감도 |
+| `hiddenInFirstPerson` | `CapDome`, `CapBrim`, `Hair`, `Eyelashes` | 이름에 이 글자가 들어간 캐릭터 메시는 화면에서 숨기고 그림자만 남긴다 |
 
 **함수**
 
 | 함수 | 역할 |
 |---|---|
-| `Start()` | `CharacterController`를 찾고, 커서를 잠그고 숨기며, 자식에서 `Animator`를 찾는다. |
+| `Start()` | `CharacterController`를 찾고, 커서를 잠그고 숨기며, 자식에서 `Animator`를 찾는다. 그 뒤 `HideFirstPersonParts()`를 부른다. |
+| `HideFirstPersonParts()` | 자식 렌더러 중 `hiddenInFirstPerson`에 해당하는 것을 `ShadowsOnly`로 바꿔 카메라 앞 모자·머리카락을 없앤다. |
 | `Update()` | 매 프레임 아래 순서로 처리한다. |
 
 **`Update()` 처리 순서**
@@ -88,6 +90,8 @@ DoorSwitch               ← 오른쪽 벽면 스위치. DoorSwitch, Box Collide
 **알아 둘 점**
 - `cameraTransform`이 비어 있으면 `Update`에서 오류가 난다.
 - 달리기, 앉기, 슬라이딩 모션 파라미터는 아직 전달하지 않는다.
+- 머리 자체는 `Ch38_Body` 메시에 붙어 있어 숨기지 않는다. 그래도 보이면 카메라를 조금 앞으로 옮기거나 `Near Clip`을 늘린다.
+- 발소리는 `EagleHuman`의 `AnimationEventReceiver`가 낸다. 클립이 비어 있으면 에디터에서 Starter Assets의 `Player_Footstep_*`, `Player_Land`를 자동으로 채운다. 웹 빌드에 넣으려면 씬을 한 번 저장한다.
 
 ---
 
@@ -210,6 +214,6 @@ DoorSwitch               ← 오른쪽 벽면 스위치. DoorSwitch, Box Collide
 
 ## 6. 알려진 문제와 할 일
 
-- [ ] 1인칭에서 모자 챙과 머리카락이 카메라에 보일 수 있다.
+- [ ] 1인칭 모자·머리카락 숨김과 발소리를 코드로 넣었다. Windows 에디터에서 플레이로 확인하고 씬을 저장한다.
 - [ ] 문틀이 없다 (유리만 있음).
 - [ ] 신발이 축구화 모양이다.

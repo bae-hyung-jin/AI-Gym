@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
 
 [RequireComponent(typeof(CharacterController))]
 public class FPSController : MonoBehaviour
@@ -9,6 +10,10 @@ public class FPSController : MonoBehaviour
     public float jumpHeight = 1.2f;
     public float gravity = -20f;
     public float mouseSensitivity = 0.1f;
+
+    // 1인칭 카메라 앞을 가리는 부위. 화면에서는 숨기고 그림자만 남긴다.
+    // 머리는 Ch38_Body에 붙어 있어 따로 숨길 수 없다.
+    public string[] hiddenInFirstPerson = { "CapDome", "CapBrim", "Hair", "Eyelashes" };
 
     CharacterController controller;
     Animator animator;
@@ -22,6 +27,18 @@ public class FPSController : MonoBehaviour
         Cursor.visible = false;
 
         animator = GetComponentInChildren<Animator>();
+        HideFirstPersonParts();
+    }
+
+    void HideFirstPersonParts()
+    {
+        foreach (var r in GetComponentsInChildren<Renderer>(true))
+            foreach (var part in hiddenInFirstPerson)
+                if (r.name.Contains(part))
+                {
+                    r.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
+                    break;
+                }
     }
 
 
