@@ -67,6 +67,6 @@
         "*.sln": "*.csproj",
         "*.slnx": "*.csproj"
     },
-    "dotnet.defaultSolution": "AI GYM_old.slnx",
+    "dotnet.defaultSolution": "AI-Gym.slnx",
     "dotnet.enableWorkspaceBasedDevelopment": false
 }
