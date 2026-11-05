@@ -16,7 +16,10 @@ public class TrainerAppear : MonoBehaviour
     GameObject panel;
     Text label;
     string cached;
-    bool near, asking;
+    bool near, asking, busy;
+
+    // 플레이어가 직접 운동하는 동안에는 트레이너를 숨긴다
+    public void SetBusy(bool value) { busy = value; Refresh(); }
 
     void Start()
     {
@@ -37,7 +40,15 @@ public class TrainerAppear : MonoBehaviour
             player = p.transform;
         }
         var d = Vector2.Distance(new Vector2(player.position.x, player.position.z), new Vector2(trainer.transform.position.x, trainer.transform.position.z));
-        var now = d < range;
+        dist = d;
+        Refresh();
+    }
+
+    float dist = 999f;
+
+    void Refresh()
+    {
+        var now = !busy && dist < range;
         if (now == near) return;
         near = now;
         if (near) Appear(); else Disappear();

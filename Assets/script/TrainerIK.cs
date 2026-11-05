@@ -17,10 +17,51 @@ public class TrainerIK : MonoBehaviour
     float footHeight;
     bool ready;
 
+    // 손: 처음(T자) 자세의 방향을 기억해 두었다가 '바를 쥔 모양'으로 돌린다
+    readonly Quaternion[] handRel = new Quaternion[2], handB0Rel = new Quaternion[2];
+    readonly Transform[][] finger = new Transform[2][];
+    readonly Quaternion[][] fingerRest = new Quaternion[2][];
+    readonly Vector3[][] fingerAxis = new Vector3[2][];
+    readonly float[][] fingerCurl = new float[2][];
+    static readonly string[] fingerNames = { "Index", "Middle", "Ring", "Little", "Thumb" };
+
     static Transform Find(Transform root, string n)
     {
         foreach (var t in root.GetComponentsInChildren<Transform>(true)) if (t.name == n) return t;
         return null;
+    }
+
+    void CacheHand(int i, string side)
+    {
+        var mid = Find(transform, side + "HandMiddle2");
+        var fd = (mid.position - hand[i].position).normalized;          // 손가락이 뻗은 방향
+        var palmDown = Vector3.ProjectOnPlane(Vector3.down, fd).normalized; // T자 자세에서 손바닥이 향한 쪽
+        var r0 = transform.rotation;
+        handRel[i] = Quaternion.Inverse(r0) * hand[i].rotation;
+        handB0Rel[i] = Quaternion.Inverse(r0) * Quaternion.LookRotation(fd, palmDown);
+        var list = new System.Collections.Generic.List<Transform>();
+        var rest = new System.Collections.Generic.List<Quaternion>();
+        var axis = new System.Collections.Generic.List<Vector3>();
+        var curl = new System.Collections.Generic.List<float>();
+        foreach (var fn in fingerNames)
+            for (var j = 1; j <= 3; j++)
+            {
+                var b = Find(transform, side + "Hand" + fn + j);
+                if (b == null) continue;
+                var dir = b.childCount > 0 ? b.GetChild(0).position - b.position : b.position - b.parent.position;
+                list.Add(b); rest.Add(b.localRotation);
+                axis.Add(Quaternion.Inverse(b.rotation) * Vector3.Cross(dir.normalized, palmDown)); // 손바닥 쪽으로 접는 축
+                curl.Add(fn == "Thumb" ? 25f : (j == 1 ? 55f : j == 2 ? 75f : 50f));
+            }
+        finger[i] = list.ToArray(); fingerRest[i] = rest.ToArray(); fingerAxis[i] = axis.ToArray(); fingerCurl[i] = curl.ToArray();
+    }
+
+    // 손바닥이 앞을 보고 손가락이 위(바)를 향하게 돌리고 손가락을 접는다
+    void Grip(int i, Vector3 forward)
+    {
+        hand[i].rotation = Quaternion.LookRotation(Vector3.up, forward) * Quaternion.Inverse(handB0Rel[i]) * handRel[i];
+        for (var j = 0; j < finger[i].Length; j++)
+            finger[i][j].localRotation = fingerRest[i][j] * Quaternion.AngleAxis(fingerCurl[i][j], fingerAxis[i][j]);
     }
 
     void OnEnable()
@@ -34,6 +75,7 @@ public class TrainerIK : MonoBehaviour
                 upArm[i] = Find(transform, side[i] + "UpperArm"); loArm[i] = Find(transform, side[i] + "LowerArm"); hand[i] = Find(transform, side[i] + "Hand");
                 upLeg[i] = Find(transform, side[i] + "UpperLeg"); loLeg[i] = Find(transform, side[i] + "LowerLeg"); foot[i] = Find(transform, side[i] + "Foot");
                 footRel[i] = Quaternion.Inverse(transform.rotation) * foot[i].rotation; // 발바닥이 평평한 처음 방향
+                CacheHand(i, side[i]);
             }
             footHeight = foot[0].position.y - transform.position.y;
             ready = true;
@@ -70,6 +112,7 @@ public class TrainerIK : MonoBehaviour
         {
             var k = i == 1 ? rightIdx : 1 - rightIdx; // i=1이 오른팔
             Solve(upArm[i], loArm[i], hand[i], handTargets[k].position, elbowHints[k].position);
+            Grip(i, f);
         }
     }
 
