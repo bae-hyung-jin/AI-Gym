@@ -47,6 +47,7 @@ public class FPSController : MonoBehaviour
         var kb = Keyboard.current;
         var mouse = Mouse.current;
         if (kb == null || mouse == null) return;
+        if (PlayerFreeze.Frozen) return; // 팝업·설문·대화창이 떠 있는 동안 멈춘다
 
         // 마우스 시점: 좌우는 몸, 위아래는 카메라
         Vector2 look = mouse.delta.ReadValue() * mouseSensitivity;

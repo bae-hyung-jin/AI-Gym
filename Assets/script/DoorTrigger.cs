@@ -17,7 +17,15 @@ public class DoorTrigger : MonoBehaviour
         Apply();
     }
 
-    void Apply() => animator.SetBool(Open, inside > 0 || holdOpen);
+    [SerializeField] bool locked; // 설문을 마치기 전에는 잠겨 있어 센서가 반응하지 않는다
+
+    public void SetLocked(bool value)
+    {
+        locked = value;
+        Apply();
+    }
+
+    void Apply() => animator.SetBool(Open, !locked && (inside > 0 || holdOpen));
 
     void OnTriggerEnter(Collider other) // 플레이어가 들어오면 열고 나가면 닫는다
     {

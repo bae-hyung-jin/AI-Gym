@@ -110,3 +110,6 @@ InitTestScene*.unity*
 
 # macOS
 .DS_Store
+
+# Gemini API key (never commit)
+/[Aa]ssets/StreamingAssets/gemini_key.txt*
