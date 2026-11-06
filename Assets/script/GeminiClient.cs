@@ -42,14 +42,16 @@ public class GeminiClient : MonoBehaviour
         // 서버가 붐비면(503·429) 잠깐 쉬고 다시 시도하고, 그래도 안 되면 대체 모델로 넘어간다.
         foreach (var m in new[] { model, fallbackModel })
         {
-            for (var attempt = 0; attempt < 3; attempt++)
+            for (var attempt = 0; attempt < 2; attempt++)
             {
                 using var req = new UnityWebRequest($"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent", "POST");
                 req.uploadHandler = new UploadHandlerRaw(json);
                 req.downloadHandler = new DownloadHandlerBuffer();
                 req.SetRequestHeader("Content-Type", "application/json");
                 req.SetRequestHeader("x-goog-api-key", apiKey);
+                Debug.Log($"[Gemini] 질문 보냄 {m} (시도 {attempt + 1})");
                 yield return req.SendWebRequest();
+                Debug.Log($"[Gemini] 응답 {m} {req.responseCode} {req.result}");
 
                 if (req.result == UnityWebRequest.Result.Success)
                 {

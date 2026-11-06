@@ -18,6 +18,7 @@ public class TrainerChat : MonoBehaviour
     InputField input;
     Text answer;
     bool waiting;
+    int ticket; // 늦게 도착한 옛 답을 버리기 위한 번호
 
     void Start()
     {
@@ -74,9 +75,27 @@ public class TrainerChat : MonoBehaviour
         if (!text.Contains(triggerKeyword)) { answer.text = $"'{triggerKeyword}'를 넣어서 물어봐 주세요."; return; } // 호출 단어가 없으면 API를 부르지 않는다
 
         waiting = true;
+        var my = ++ticket;
         answer.text = "생각하는 중...";
         input.text = "";
+        StartCoroutine(Watchdog(my));
         // 설문은 참고만 한다. 손님이 지금 쓴 질문이 우선이고, 질문과 상관없으면 설문 내용은 말하지 않게 한다.
-        client.Ask($"[참고: 입장할 때 손님이 불편하다고 고른 자세는 '{DoorSurvey.Summary}'. 아래 질문에서 말한 내용이 항상 우선이며, 질문과 직접 관련이 없으면 이 참고는 언급하지 말 것]\n질문: {text}", reply => { answer.text = reply; waiting = false; voice?.Say(reply); });
+        client.Ask($"[참고: 입장할 때 손님이 불편하다고 고른 자세는 '{DoorSurvey.Summary}'. 아래 질문에서 말한 내용이 항상 우선이며, 질문과 직접 관련이 없으면 이 참고는 언급하지 말 것]
+질문: {text}", reply =>
+        {
+            if (my != ticket) return; // 이미 시간이 지나 포기한 질문의 답이다
+            ticket++; answer.text = reply; waiting = false; voice?.Say(reply);
+        });
+    }
+
+    // 답이 너무 늦으면 계속 "생각하는 중"에 머물지 않고 다시 질문할 수 있게 풀어 준다
+    System.Collections.IEnumerator Watchdog(int my)
+    {
+        yield return new WaitForSecondsRealtime(40f);
+        if (my != ticket) yield break;
+        ticket++; waiting = false;
+        answer.text = "답이 오지 않아요. 잠시 뒤에 다시 물어봐 주세요.";
+        Debug.LogWarning("[TrainerChat] 40초 안에 답이 오지 않았습니다");
+    }
     }
 }
