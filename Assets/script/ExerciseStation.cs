@@ -12,7 +12,6 @@ public class ExerciseStation : MonoBehaviour
     [SerializeField] Transform seatPoint;    // 엉덩이 자리
     [SerializeField] Transform facing;       // 이 오브젝트의 앞쪽(+Z)을 보고 앉는다
     [SerializeField] TrainerAppear trainer;
-    [SerializeField] GeminiClient client;
     [SerializeField] string machineName = "랫풀다운";
     [SerializeField] float useRange = 2.2f;
     [SerializeField] float pullSpeed = 1.4f; // 1초에 바가 움직이는 비율
@@ -107,13 +106,10 @@ public class ExerciseStation : MonoBehaviour
         player.transform.position = exitPos;
         player.cameraTransform.localRotation = Quaternion.identity;
         cc.enabled = true; player.enabled = true;
-        machine.Play("Pull", 0, 0f); machine.Update(0f); machine.enabled = false;
+        machine.Play("Pull", 0, 0f); machine.Update(0f); machine.speed = 1f; machine.enabled = false;
         trainer.SetBusy(false);
 
-        if (reps == 0) return;
-        say("AI 트레이너가 평가하는 중...", 60f);
-        client.Ask($"[참고: 입장할 때 손님이 불편하다고 고른 자세는 '{DoorSurvey.Summary}'. 해당되면 조심하라는 말을 한 마디만 넣을 것]\n" +
-                   $"손님이 {machineName}을 직접 {reps}회 했다. 칭찬과 다음에 하면 좋은 조언을 두 문장으로 말해 줘.", reply => say("AI 트레이너: " + reply, 12f));
+        if (reps > 0) SessionLog.Add(machineName, reps); // 나갈 때 요약 카드에 쓴다
     }
 
     void say(string text, float seconds) { speech.text = text; speechUntil = Time.time + seconds; }

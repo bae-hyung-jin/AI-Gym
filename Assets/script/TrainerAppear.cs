@@ -58,6 +58,8 @@ public class TrainerAppear : MonoBehaviour
     {
         trainer.SetActive(true);
         machine.enabled = true;
+        machine.speed = 1f; // 직접 운동할 때 0으로 멈춰 둔 것을 되돌린다
+        machine.Play("Pull", 0, 0f);
         panel.SetActive(true);
         if (cached != null) { label.text = "AI 트레이너: " + cached; return; }
         if (asking) return;

@@ -66476,6 +66476,7 @@ GameObject:
   - component: {fileID: 2051067935}
   - component: {fileID: 2051067938}
   - component: {fileID: 2051067939}
+  - component: {fileID: 2051067940}
   m_Layer: 0
   m_Name: GymUI
   m_TagString: Untagged
@@ -66564,11 +66565,27 @@ MonoBehaviour:
   seatPoint: {fileID: 1339930605}
   facing: {fileID: 602675491}
   trainer: {fileID: 2051067938}
-  client: {fileID: 1267187827}
   machineName: "\uB7AB\uD480\uB2E4\uC6B4"
   useRange: 2.2
   pullSpeed: 1.4
   eyeAboveSeat: 0.73
+--- !u!114 &2051067940
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2051067934}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46b654958a025964792ee95a385eff8e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SummaryCard
+  insideZ: -7
+  outsideZ: -11
+  font: {fileID: 12800000, guid: 2f82c5addb6e6e64bb1fc2c87cf7f09e, type: 3}
+  fontBold: {fileID: 12800000, guid: 8835d391fc6f18144b277cf3b43fbb85, type: 3}
+  client: {fileID: 1267187827}
 --- !u!4 &2061635911 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 263f30ca2fdfcb7479a4cde821a2b9eb, type: 3}
