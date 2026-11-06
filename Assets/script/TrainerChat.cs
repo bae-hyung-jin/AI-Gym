@@ -80,8 +80,7 @@ public class TrainerChat : MonoBehaviour
         input.text = "";
         StartCoroutine(Watchdog(my));
         // 설문은 참고만 한다. 손님이 지금 쓴 질문이 우선이고, 질문과 상관없으면 설문 내용은 말하지 않게 한다.
-        client.Ask($"[참고: 입장할 때 손님이 불편하다고 고른 자세는 '{DoorSurvey.Summary}'. 아래 질문에서 말한 내용이 항상 우선이며, 질문과 직접 관련이 없으면 이 참고는 언급하지 말 것]
-질문: {text}", reply =>
+        client.Ask($"[참고: 입장할 때 손님이 불편하다고 고른 자세는 '{DoorSurvey.Summary}'. 아래 질문에서 말한 내용이 항상 우선이며, 질문과 직접 관련이 없으면 이 참고는 언급하지 말 것]\n질문: {text}", reply =>
         {
             if (my != ticket) return; // 이미 시간이 지나 포기한 질문의 답이다
             ticket++; answer.text = reply; waiting = false; voice?.Say(reply);
@@ -96,6 +95,5 @@ public class TrainerChat : MonoBehaviour
         ticket++; waiting = false;
         answer.text = "답이 오지 않아요. 잠시 뒤에 다시 물어봐 주세요.";
         Debug.LogWarning("[TrainerChat] 40초 안에 답이 오지 않았습니다");
-    }
     }
 }
