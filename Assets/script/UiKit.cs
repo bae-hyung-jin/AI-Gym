@@ -15,6 +15,7 @@ public static class UiKit
         s.referenceResolution = new Vector2(1920, 1080);
         s.matchWidthOrHeight = 0.5f;
         go.AddComponent<GraphicRaycaster>();
+        go.AddComponent<FitScaler>();
         return c;
     }
 
@@ -61,4 +62,12 @@ public static class UiKit
         t.rectTransform.anchorMin = t.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
         return b;
     }
+}
+
+// 창이 16:9보다 좁아도 UI가 화면 밖으로 잘리지 않게, 더 좁은 쪽에 맞춰 크기를 줄인다.
+public class FitScaler : MonoBehaviour
+{
+    CanvasScaler scaler;
+    void Awake() => scaler = GetComponent<CanvasScaler>();
+    void Update() => scaler.matchWidthOrHeight = Screen.width * 1080f < Screen.height * 1920f ? 0f : 1f;
 }
