@@ -8,6 +8,7 @@ public class TrainerAppear : MonoBehaviour
     [SerializeField] GeminiClient client;
     [SerializeField] GameObject trainer;
     [SerializeField] Transform anchor;      // 거리를 재는 기준(보통 앉는 자리). 비우면 트레이너 위치
+    [SerializeField] TrainerVoice voice;
     [SerializeField] Animator trainerAnim;  // 블렌더에서 만든 트레이너 동작(선택). 기구 애니메이션과 같은 때 처음부터 시작한다
     [SerializeField] Animator machine;      // 기구 애니메이션(바가 오르내림)
     [SerializeField] string machineName = "랫풀다운";
@@ -67,7 +68,7 @@ public class TrainerAppear : MonoBehaviour
         machine.speed = 1f; // 직접 운동할 때 0으로 멈춰 둔 것을 되돌린다
         machine.Play("Pull", 0, 0f);
         panel.SetActive(true);
-        if (cached != null) { label.text = "AI 트레이너: " + cached; return; }
+        if (cached != null) { label.text = "AI 트레이너: " + cached; voice?.Say(cached); return; }
         if (asking) return;
         asking = true;
         label.text = "AI 트레이너: 안녕하세요, 잠시만요...";
@@ -77,12 +78,13 @@ public class TrainerAppear : MonoBehaviour
             asking = false;
             if (reply.StartsWith("[오류]") || reply.StartsWith("지금 AI")) { label.text = "AI 트레이너: " + reply; return; } // 실패는 저장하지 않아 다음에 다시 시도한다
             cached = reply;
-            if (near) label.text = "AI 트레이너: " + reply;
+            if (near) { label.text = "AI 트레이너: " + reply; voice?.Say(reply); }
         });
     }
 
     void Disappear()
     {
+        voice?.Stop();
         trainer.SetActive(false);
         machine.Rebind(); machine.Update(0f); // 바를 처음 자리로 돌려놓고 멈춘다
         machine.enabled = false;

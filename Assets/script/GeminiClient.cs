@@ -68,4 +68,88 @@ public class GeminiClient : MonoBehaviour
             ? "지금 AI 서버가 붐벼서 답을 받지 못했어요. 잠시 뒤에 다시 물어봐 주세요."
             : $"[오류] {lastCode}");
     }
+
+    // ---- 음성(TTS) ----
+    [SerializeField] string ttsModel = "gemini-3.8-flash-tts";
+    [SerializeField] string ttsFallbackModel = "gemini-3.8-flash-lite-tts";
+    [SerializeField] string voiceName = "Kore";
+
+    [Serializable] class TtsPrebuilt { public string voiceName; }
+    [Serializable] class TtsVoiceCfg { public TtsPrebuilt prebuiltVoiceConfig; }
+    [Serializable] class TtsSpeechCfg { public TtsVoiceCfg voiceConfig; }
+    [Serializable] class TtsGenCfg { public string[] responseModalities; public TtsSpeechCfg speechConfig; }
+    [Serializable] class TtsRequest { public Content[] contents; public TtsGenCfg generationConfig; }
+    [Serializable] class InlineData { public string mimeType; public string data; }
+    [Serializable] class AudioPart { public InlineData inlineData; }
+    [Serializable] class AudioContent { public AudioPart[] parts; }
+    [Serializable] class AudioCandidate { public AudioContent content; }
+    [Serializable] class AudioResponse { public AudioCandidate[] candidates; }
+
+    // 글을 음성으로 바꿔 AudioClip으로 돌려준다. 실패하면 null.
+    public void Synthesize(string text, Action<AudioClip> onDone) => StartCoroutine(SynthRoutine(text, onDone));
+
+    IEnumerator SynthRoutine(string text, Action<AudioClip> onDone)
+    {
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            using var keyReq = UnityWebRequest.Get(Application.streamingAssetsPath + "/gemini_key.txt");
+            yield return keyReq.SendWebRequest();
+            if (keyReq.result != UnityWebRequest.Result.Success) { onDone(null); yield break; }
+            apiKey = keyReq.downloadHandler.text.Trim();
+        }
+        var body = new TtsRequest
+        {
+            contents = new[] { new Content { parts = new[] { new Part { text = text } } } },
+            generationConfig = new TtsGenCfg
+            {
+                responseModalities = new[] { "AUDIO" },
+                speechConfig = new TtsSpeechCfg { voiceConfig = new TtsVoiceCfg { prebuiltVoiceConfig = new TtsPrebuilt { voiceName = voiceName } } }
+            }
+        };
+        var json = Encoding.UTF8.GetBytes(JsonUtility.ToJson(body));
+        foreach (var m in new[] { ttsModel, ttsFallbackModel })
+            for (var attempt = 0; attempt < 2; attempt++)
+            {
+                using var req = new UnityWebRequest($"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent", "POST");
+                req.uploadHandler = new UploadHandlerRaw(json);
+                req.downloadHandler = new DownloadHandlerBuffer();
+                req.SetRequestHeader("Content-Type", "application/json");
+                req.SetRequestHeader("x-goog-api-key", apiKey);
+                yield return req.SendWebRequest();
+                if (req.result == UnityWebRequest.Result.Success)
+                {
+                    var res = JsonUtility.FromJson<AudioResponse>(req.downloadHandler.text);
+                    var d = res?.candidates != null && res.candidates.Length > 0 ? res.candidates[0].content?.parts?[0]?.inlineData : null;
+                    if (d != null && !string.IsNullOrEmpty(d.data)) { onDone(ToClip(Convert.FromBase64String(d.data), d.mimeType)); yield break; }
+                    break; // 응답은 왔지만 소리가 없다. 다음 모델로 넘어간다
+                }
+                Debug.LogWarning($"[Gemini TTS] {m} 실패 {req.responseCode} {req.error}");
+                if (req.responseCode != 503 && req.responseCode != 429) break;
+                yield return new WaitForSeconds(1f);
+            }
+        onDone(null);
+    }
+
+    // WAV 또는 24kHz 16비트 PCM을 AudioClip으로 바꾼다
+    static AudioClip ToClip(byte[] b, string mime)
+    {
+        int rate = 24000, ch = 1, start = 0;
+        if (b.Length > 44 && b[0] == 'R' && b[1] == 'I' && b[2] == 'F' && b[3] == 'F')
+        {
+            ch = BitConverter.ToInt16(b, 22); rate = BitConverter.ToInt32(b, 24);
+            for (var i = 12; i + 8 < b.Length;) // 'data' 조각을 찾는다
+            {
+                var size = BitConverter.ToInt32(b, i + 4);
+                if (b[i] == 'd' && b[i + 1] == 'a' && b[i + 2] == 't' && b[i + 3] == 'a') { start = i + 8; break; }
+                i += 8 + size;
+            }
+        }
+        else if (mime != null && mime.Contains("rate=")) int.TryParse(mime.Substring(mime.IndexOf("rate=") + 5).Split(';')[0], out rate);
+        var n = (b.Length - start) / 2;
+        var f = new float[n];
+        for (var i = 0; i < n; i++) f[i] = BitConverter.ToInt16(b, start + i * 2) / 32768f;
+        var clip = AudioClip.Create("trainer_voice", n / ch, ch, rate, false);
+        clip.SetData(f, 0);
+        return clip;
+    }
 }

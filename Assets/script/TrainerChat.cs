@@ -7,6 +7,7 @@ public class TrainerChat : MonoBehaviour
 {
     [SerializeField] Font font;
     [SerializeField] GeminiClient client;
+    [SerializeField] TrainerVoice voice;
     [SerializeField] string triggerKeyword = "트레이너";
 
     GameObject panel;
@@ -65,6 +66,6 @@ public class TrainerChat : MonoBehaviour
         answer.text = "생각하는 중...";
         input.text = "";
         // 설문은 참고만 한다. 손님이 지금 쓴 질문이 우선이고, 질문과 상관없으면 설문 내용은 말하지 않게 한다.
-        client.Ask($"[참고: 입장할 때 손님이 불편하다고 고른 자세는 '{DoorSurvey.Summary}'. 아래 질문에서 말한 내용이 항상 우선이며, 질문과 직접 관련이 없으면 이 참고는 언급하지 말 것]\n질문: {text}", reply => { answer.text = reply; waiting = false; });
+        client.Ask($"[참고: 입장할 때 손님이 불편하다고 고른 자세는 '{DoorSurvey.Summary}'. 아래 질문에서 말한 내용이 항상 우선이며, 질문과 직접 관련이 없으면 이 참고는 언급하지 말 것]\n질문: {text}", reply => { answer.text = reply; waiting = false; voice?.Say(reply); });
     }
 }
