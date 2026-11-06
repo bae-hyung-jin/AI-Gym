@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -5,6 +6,9 @@ using UnityEngine.UI;
 // 화면 오른쪽 아래 버튼(또는 T키)으로 대화창을 열고, 입력한 글에 '호출 단어'가 있을 때만 Gemini를 부른다.
 public class TrainerChat : MonoBehaviour
 {
+#if UNITY_WEBGL && !UNITY_EDITOR
+    [DllImport("__Internal")] static extern string PromptInput(string message, string defaultText);
+#endif
     [SerializeField] Font font;
     [SerializeField] GeminiClient client;
     [SerializeField] TrainerVoice voice;
@@ -34,6 +38,12 @@ public class TrainerChat : MonoBehaviour
         input = field.gameObject.AddComponent<InputField>();
         input.targetGraphic = field; input.textComponent = tx; input.placeholder = ph;
         input.onSubmit.AddListener(_ => Send());
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // WebGL의 Unity 입력창은 한글 조합이 안 된다. 눌러서 브라우저 입력창으로 쓰고 바로 보낸다.
+        input.interactable = false;
+        var ask = field.gameObject.AddComponent<Button>(); ask.targetGraphic = field;
+        ask.onClick.AddListener(() => { input.text = PromptInput($"질문을 써 주세요 ('{triggerKeyword}' 포함)", input.text); Send(); });
+#endif
 
         UiKit.Btn(p, font, "보내기", 36, new Vector2(240, 90), new Vector2(430, -220), new Color(0.2f, 0.45f, 0.75f)).onClick.AddListener(Send);
         UiKit.Btn(p, font, "닫기", 32, new Vector2(160, 70), new Vector2(560, 270), new Color(0.4f, 0.25f, 0.25f)).onClick.AddListener(Toggle);
