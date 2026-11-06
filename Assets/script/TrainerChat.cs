@@ -41,7 +41,8 @@ public class TrainerChat : MonoBehaviour
 #if UNITY_WEBGL && !UNITY_EDITOR
         // WebGL의 Unity 입력창은 한글 조합이 안 된다. 눌러서 브라우저 입력창으로 쓰고 바로 보낸다.
         input.interactable = false;
-        var ask = field.gameObject.AddComponent<Button>(); ask.targetGraphic = field;
+        // 입력칸 자체에는 버튼을 붙일 수 없어서(이미 InputField가 있다) 위에 투명 버튼을 덮는다
+        var ask = UiKit.Btn(field.transform, font, "", 1, new Vector2(900, 90), Vector2.zero, new Color(0, 0, 0, 0));
         ask.onClick.AddListener(() => { input.text = PromptInput($"질문을 써 주세요 ('{triggerKeyword}' 포함)", input.text); Send(); });
 #endif
 
