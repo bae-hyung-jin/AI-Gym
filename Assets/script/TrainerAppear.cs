@@ -7,6 +7,8 @@ public class TrainerAppear : MonoBehaviour
     [SerializeField] Font font;
     [SerializeField] GeminiClient client;
     [SerializeField] GameObject trainer;
+    [SerializeField] Transform anchor;      // 거리를 재는 기준(보통 앉는 자리). 비우면 트레이너 위치
+    [SerializeField] Animator trainerAnim;  // 블렌더에서 만든 트레이너 동작(선택). 기구 애니메이션과 같은 때 처음부터 시작한다
     [SerializeField] Animator machine;      // 기구 애니메이션(바가 오르내림)
     [SerializeField] string machineName = "랫풀다운";
     [SerializeField] float range = 5f;
@@ -42,7 +44,7 @@ public class TrainerAppear : MonoBehaviour
             if (p == null) return;
             player = p.transform;
         }
-        var d = Vector2.Distance(new Vector2(player.position.x, player.position.z), new Vector2(trainer.transform.position.x, trainer.transform.position.z));
+        var d = Vector2.Distance(new Vector2(player.position.x, player.position.z), new Vector2((anchor != null ? anchor : trainer.transform).position.x, (anchor != null ? anchor : trainer.transform).position.z));
         dist = d;
         Refresh();
     }
@@ -60,6 +62,7 @@ public class TrainerAppear : MonoBehaviour
     void Appear()
     {
         trainer.SetActive(true);
+        if (trainerAnim != null) { trainerAnim.Rebind(); trainerAnim.Update(0f); }
         machine.enabled = true;
         machine.speed = 1f; // 직접 운동할 때 0으로 멈춰 둔 것을 되돌린다
         machine.Play("Pull", 0, 0f);

@@ -47,7 +47,7 @@ public class DoorSurvey : MonoBehaviour
                 b.targetGraphic.color = picked.Contains(text) ? on : off;
             });
         }
-        var go = UiKit.Btn(t, font, "다 괜찮아요 / 선택 완료", 42, new Vector2(700, 110), new Vector2(0, -330), new Color(0.2f, 0.45f, 0.75f));
+        var go = UiKit.Btn(t, font, "선택 완료", 42, new Vector2(700, 110), new Vector2(0, -330), new Color(0.2f, 0.45f, 0.75f));
         go.onClick.AddListener(Finish);
         PlayerFreeze.Push();
     }

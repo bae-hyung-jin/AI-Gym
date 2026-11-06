@@ -17,7 +17,7 @@ public class ExerciseStation : MonoBehaviour
     [SerializeField] float pullSpeed = 1.4f; // 1초에 바가 움직이는 비율
     [SerializeField] float eyeAboveSeat = 0.73f;
 
-    const float FullPullTime = 0.4f; // 클립(4초)에서 바가 가장 내려오는 시점 1.6초
+    [SerializeField] float fullPullTime = 0.4f; // 기구 클립에서 바가 가장 내려온 시점(0~1)
 
     Text prompt, hud, speech;
     GameObject hudRoot;
@@ -69,7 +69,7 @@ public class ExerciseStation : MonoBehaviour
 
         var target = (kb.spaceKey.isPressed || mouse.leftButton.isPressed) ? 1f : 0f;
         pull = Mathf.MoveTowards(pull, target, pullSpeed * Time.deltaTime);
-        machine.Play("Pull", 0, pull * FullPullTime);
+        machine.Play("Pull", 0, pull * fullPullTime);
         machine.Update(0f);
 
         if (pull > 0.95f) wentDown = true;
