@@ -3,7 +3,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 // 기구 가까이에서 E를 누르면 플레이어가 의자에 앉아 직접 운동한다.
-// 스페이스(또는 마우스 왼쪽)를 누르고 있으면 바가 내려오고, 떼면 올라간다. 끝나면 Gemini가 한마디 해 준다.
+// 3인칭 카메라로 앉은 내 모습이 보이고, 스페이스(또는 마우스 왼쪽)를 누르고 있으면 바가 내려오고 떼면 올라간다.
 public class ExerciseStation : MonoBehaviour
 {
     [SerializeField] Font font;
@@ -15,24 +15,28 @@ public class ExerciseStation : MonoBehaviour
     [SerializeField] string machineName = "랫풀다운";
     [SerializeField] float useRange = 2.2f;
     [SerializeField] float pullSpeed = 1.4f; // 1초에 바가 움직이는 비율
-    [SerializeField] float eyeAboveSeat = 0.73f;
+    [SerializeField] PlayerSeatPose pose;   // 앉은 자세와 손 IK
+    [SerializeField] float camDistance = 3.2f;
 
     [SerializeField] float fullPullTime = 0.4f; // 기구 클립에서 바가 가장 내려온 시점(0~1)
 
     Text prompt, hud, speech;
     GameObject hudRoot;
     CharacterController cc;
-    Renderer[] bodyRenderers;
     bool active, wentDown;
     float pull;
     int reps;
     Vector3 exitPos;
     float speechUntil, yaw, pitch;
     Quaternion baseRot;
+    Camera cam, fpCam;
+    Renderer[] headParts;
 
     void Start()
     {
         cc = player.GetComponent<CharacterController>();
+        fpCam = player.cameraTransform.GetComponent<Camera>();
+        var cg = new GameObject("ExerciseCamera"); cam = cg.AddComponent<Camera>(); cam.depth = 100f; cam.fieldOfView = 50f; cg.SetActive(false);
         var c = UiKit.MakeCanvas("ExerciseCanvas", 30);
         prompt = UiKit.Label(c.transform, font, "E : 랫풀다운 운동하기", 44, new Vector2(900, 90), new Vector2(0, -200));
         prompt.gameObject.SetActive(false);
@@ -60,12 +64,10 @@ public class ExerciseStation : MonoBehaviour
 
         if (kb.eKey.wasPressedThisFrame || kb.escapeKey.wasPressedThisFrame) { End(); return; }
 
-        // 앉은 채로 고개만 조금 돌릴 수 있다
-        var look = mouse.delta.ReadValue() * 0.1f;
-        yaw = Mathf.Clamp(yaw + look.x, -40f, 40f);
-        pitch = Mathf.Clamp(pitch - look.y, -30f, 25f);
-        player.transform.rotation = baseRot * Quaternion.Euler(0f, yaw, 0f);
-        player.cameraTransform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+        // 마우스로 카메라를 돌려 앉은 모습을 여러 각도에서 본다
+        var look = mouse.delta.ReadValue() * 0.15f;
+        yaw = Mathf.Clamp(yaw + look.x, -110f, 110f);
+        pitch = Mathf.Clamp(pitch - look.y, 0f, 45f);
 
         var target = (kb.spaceKey.isPressed || mouse.leftButton.isPressed) ? 1f : 0f;
         pull = Mathf.MoveTowards(pull, target, pullSpeed * Time.deltaTime);
@@ -75,6 +77,15 @@ public class ExerciseStation : MonoBehaviour
         if (pull > 0.95f) wentDown = true;
         else if (pull < 0.1f && wentDown) { wentDown = false; reps++; }
         hud.text = $"{machineName}   횟수 {reps}회\n스페이스·마우스 왼쪽: 당기기   E: 그만하기";
+    }
+
+    void LateUpdate()
+    {
+        if (!active) return;
+        var pivot = seatPoint.position + Vector3.up * 0.55f;
+        var rot = baseRot * Quaternion.Euler(-pitch, yaw, 0f); // 위쪽에서 내려다본다
+        cam.transform.position = pivot + rot * new Vector3(0f, 0f, camDistance);
+        cam.transform.LookAt(pivot);
     }
 
     static Vector3 Flat(Vector3 v) { v.y = 0; return v; }
@@ -89,20 +100,22 @@ public class ExerciseStation : MonoBehaviour
         var f = Flat(facing.forward).normalized;
         exitPos = seatPoint.position + f * 1.7f; exitPos.y = player.transform.position.y;
         player.enabled = false; cc.enabled = false;
-        baseRot = Quaternion.LookRotation(f, Vector3.up); yaw = 0f; pitch = 5f;
-        player.transform.rotation = baseRot;
-        var eye = player.cameraTransform;
-        var dy = seatPoint.position.y - 0.07f + eyeAboveSeat - eye.position.y; // 앉은 눈높이로 낮춘다
-        player.transform.position = new Vector3(seatPoint.position.x, player.transform.position.y + dy, seatPoint.position.z);
-        eye.localRotation = Quaternion.Euler(pitch, 0f, 0f);
-        bodyRenderers = player.GetComponentsInChildren<Renderer>();
-        foreach (var r in bodyRenderers) r.enabled = false; // 내 몸이 화면을 가리지 않게 한다
+        baseRot = Quaternion.LookRotation(f, Vector3.up); yaw = -50f; pitch = 15f; // 앞쪽 옆에서 비스듬히 본다
+        player.transform.SetPositionAndRotation(new Vector3(seatPoint.position.x, player.transform.position.y, seatPoint.position.z), baseRot);
+        var an = player.GetComponentInChildren<Animator>(); an.SetFloat("Speed", 0f); an.SetBool("Jump", false);
+        // 3인칭이라 1인칭에서 숨겨 둔 머리카락·모자를 다시 보이게 한다
+        var parts = new System.Collections.Generic.List<Renderer>();
+        foreach (var r in player.GetComponentsInChildren<Renderer>(true)) foreach (var n in player.hiddenInFirstPerson) if (r.name.Contains(n)) { r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On; parts.Add(r); break; }
+        headParts = parts.ToArray();
+        pose.enabled = true;
+        fpCam.enabled = false; cam.gameObject.SetActive(true);
     }
 
     void End()
     {
         active = false; hudRoot.SetActive(false);
-        foreach (var r in bodyRenderers) r.enabled = true;
+        pose.enabled = false; cam.gameObject.SetActive(false); fpCam.enabled = true;
+        foreach (var r in headParts) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly; // 다시 1인칭용으로
         player.transform.position = exitPos;
         player.cameraTransform.localRotation = Quaternion.identity;
         cc.enabled = true; player.enabled = true;

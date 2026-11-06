@@ -117,7 +117,7 @@ public class TrainerIK : MonoBehaviour
     }
 
     // 두 마디(어깨-팔꿈치-손목)를 목표에 닿게 구부린다. pole 쪽으로 팔꿈치가 꺾인다.
-    static void Solve(Transform a, Transform b, Transform c, Vector3 target, Vector3 pole)
+    public static void Solve(Transform a, Transform b, Transform c, Vector3 target, Vector3 pole)
     {
         var pa = a.position;
         var l1 = (b.position - pa).magnitude;

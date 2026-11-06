@@ -7530,6 +7530,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 974238578668270704, guid: c708a3b79cd542b42bbfedb17e213bc1, type: 3}
       insertIndex: -1
       addedObject: {fileID: 920393823}
+    - targetCorrespondingSourceObject: {fileID: 974238578668270704, guid: c708a3b79cd542b42bbfedb17e213bc1, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 920393829}
   m_SourcePrefab: {fileID: 100100000, guid: c708a3b79cd542b42bbfedb17e213bc1, type: 3}
 --- !u!1 &307970055
 GameObject:
@@ -33292,6 +33295,11 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &857715548 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -7468534527268093067, guid: c7d9093e50a79f24594e283a55e32611, type: 3}
+  m_PrefabInstance: {fileID: 1501632303}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &860750280
 GameObject:
   m_ObjectHideFlags: 0
@@ -34884,6 +34892,27 @@ MonoBehaviour:
   - CapBrim
   - Hair
   - Eyelashes
+--- !u!114 &920393829
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 920393815}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ba83796ef9a6a3b43ae8eee9dca186e9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerSeatPose
+  animator: {fileID: 2061635914}
+  seatPoint: {fileID: 1339930605}
+  facing: {fileID: 602675491}
+  handTargets:
+  - {fileID: 1398719673}
+  - {fileID: 857715548}
+  elbowHints:
+  - {fileID: 1386856436}
+  - {fileID: 1520934346}
 --- !u!1 &921605208
 GameObject:
   m_ObjectHideFlags: 0
@@ -49560,6 +49589,11 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1362909774}
   m_CullTransparentMesh: 1
+--- !u!4 &1386856436 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -5352826773233675045, guid: c7d9093e50a79f24594e283a55e32611, type: 3}
+  m_PrefabInstance: {fileID: 1501632303}
+  m_PrefabAsset: {fileID: 0}
 --- !u!43 &1390329039
 Mesh:
   m_ObjectHideFlags: 0
@@ -49839,6 +49873,11 @@ MeshCollider:
   m_Convex: 1
   m_CookingOptions: 30
   m_Mesh: {fileID: -3033727062268340128, guid: b359f61f178178e41a260db0319b6f1b, type: 3}
+--- !u!4 &1398719673 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -5731941930905013798, guid: c7d9093e50a79f24594e283a55e32611, type: 3}
+  m_PrefabInstance: {fileID: 1501632303}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1414777521
 GameObject:
   m_ObjectHideFlags: 0
@@ -52777,6 +52816,11 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1520211285}
   m_CullTransparentMesh: 1
+--- !u!4 &1520934346 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8049491699091194013, guid: c7d9093e50a79f24594e283a55e32611, type: 3}
+  m_PrefabInstance: {fileID: 1501632303}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1524149599
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -66573,7 +66617,8 @@ MonoBehaviour:
   machineName: "\uB7AB\uD480\uB2E4\uC6B4"
   useRange: 2.2
   pullSpeed: 1.4
-  eyeAboveSeat: 0.73
+  pose: {fileID: 920393829}
+  camDistance: 3.2
   fullPullTime: 0.5
 --- !u!114 &2051067940
 MonoBehaviour:
@@ -66622,6 +66667,11 @@ MonoBehaviour:
   - {fileID: 8300000, guid: a3194b8bbc96ef84fab1f98f4b7dae3e, type: 3}
   landingClip: {fileID: 8300000, guid: ff697d3070687ce4583faa0561a145a2, type: 3}
   volume: 0.5
+--- !u!95 &2061635914 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 263f30ca2fdfcb7479a4cde821a2b9eb, type: 3}
+  m_PrefabInstance: {fileID: 807606115}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &2062187753
 PrefabInstance:
   m_ObjectHideFlags: 0
