@@ -83,6 +83,18 @@ public class TrainerAppear : MonoBehaviour
 
         if (coachAvatar != null)
         {
+            // 발바닥이 바닥(또는 장판 윗면)에 닿도록 높이를 맞춘다. 모델 기준점이 발보다 낮아 바닥에 묻히던 것을 막는다
+            var rs = coachAvatar.GetComponentsInChildren<Renderer>();
+            if (rs.Length > 0)
+            {
+                var bb = rs[0].bounds; foreach (var r in rs) bb.Encapsulate(r.bounds);
+                var floorY = Mathf.Max(playerAnim.transform.position.y, 0.04f); // 장판 윗면이 약 0.04
+                coachAvatar.transform.position += Vector3.up * (floorY - bb.min.y);
+            }
+        }
+
+        if (coachAvatar != null)
+        {
             var look = Vector3.ProjectOnPlane(seat.position - pos, Vector3.up);
             if (look.sqrMagnitude > 0.001f)
                 coachAvatar.transform.rotation = Quaternion.LookRotation(look.normalized, Vector3.up);
