@@ -34,20 +34,15 @@ public class GeminiClient : MonoBehaviour
             yield break;
         }
 
-        // 3. StreamingAssets에서 다운로드 (안전한 예외 처리)
-        try
+        // 3. StreamingAssets에서 다운로드
+        string path = Application.streamingAssetsPath + "/gemini_key.txt";
+        using (var keyReq = UnityWebRequest.Get(path))
         {
-            string path = Application.streamingAssetsPath + "/gemini_key.txt";
-            using var keyReq = UnityWebRequest.Get(path);
             yield return keyReq.SendWebRequest();
             if (keyReq.result == UnityWebRequest.Result.Success && !string.IsNullOrEmpty(keyReq.downloadHandler.text))
             {
                 apiKey = keyReq.downloadHandler.text.Trim();
             }
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogWarning($"[GeminiClient] StreamingAssets 키 로드 건너뜀: {ex.Message}");
         }
     }
 
