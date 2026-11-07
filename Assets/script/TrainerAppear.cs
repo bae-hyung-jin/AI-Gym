@@ -23,6 +23,23 @@ public class TrainerAppear : MonoBehaviour
     bool near, asking, busy;
     GameObject coachAvatar; // 운동 중 플레이어 옆에 서 있는 코치 아바타(coachPrefab에서 생성)
 
+    void Awake()
+    {
+        EnsureCoachPrefab();
+    }
+
+    void EnsureCoachPrefab()
+    {
+        if (coachPrefab != null) return;
+        coachPrefab = Resources.Load<GameObject>("AI_Trainer");
+#if UNITY_EDITOR
+        if (coachPrefab == null)
+        {
+            coachPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Gym/AI_Trainer.fbx");
+        }
+#endif
+    }
+
     // 플레이어가 직접 운동하는 동안에는 트레이너를 숨긴다
     public void SetBusy(bool value) { busy = value; Refresh(); }
 
@@ -34,40 +51,42 @@ public class TrainerAppear : MonoBehaviour
         trainer.SetActive(false);
         if (coachAvatar != null) Destroy(coachAvatar);
 
+        EnsureCoachPrefab();
+
         var f = Vector3.ProjectOnPlane(facing.forward, Vector3.up).normalized;
         var right = Vector3.Cross(Vector3.up, f);
         var pos = seat.position + right * 1.2f + f * 0.4f; // 3인칭 카메라(앞-왼쪽)에서 잘 보이는 플레이어 오른쪽 옆
         pos.y = playerAnim.transform.position.y;
 
-#if UNITY_EDITOR
-        // 인스펙터에 지정하지 않았어도 에디터에서는 AI_Trainer 모델을 자동으로 쓴다(빌드에는 Tools > AI Trainer > Coach 연결 필요)
-        if (coachPrefab == null) coachPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Gym/AI_Trainer.fbx");
-#endif
-        if (coachPrefab == null)
+        if (coachPrefab != null)
         {
-            Debug.LogWarning("[TrainerAppear] Coach Prefab이 비어 있어 아바타 없이 자막/음성으로만 코칭합니다. Tools > AI Trainer > Coach 아바타 연결을 실행해 주세요.");
-            panel.SetActive(true);
-            return;
-        }
-
-        try
-        {
-            var go = coachPrefab as GameObject;
-            coachAvatar = go != null ? Instantiate(go, pos, Quaternion.identity) : Instantiate(coachPrefab, pos, Quaternion.identity) as GameObject;
-            if (coachAvatar != null)
+            try
             {
-                coachAvatar.name = "AI_Trainer_Coach";
-                coachAvatar.SetActive(true);
-                if (coachAvatar.GetComponent<CoachStandPose>() == null) coachAvatar.AddComponent<CoachStandPose>(); // T자 자세 -> 서 있는 자세
+                coachAvatar = Instantiate(coachPrefab, pos, Quaternion.identity);
+                if (coachAvatar != null)
+                {
+                    coachAvatar.name = "AI_Trainer_Coach";
+                    coachAvatar.SetActive(true);
+                    if (coachAvatar.GetComponent<CoachStandPose>() == null)
+                        coachAvatar.AddComponent<CoachStandPose>(); // T자 자세 -> 서 있는 자세
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[TrainerAppear] 아바타 생성 중 오류 발생: {ex}");
             }
         }
-        catch (System.Exception ex)
+        else
         {
-            Debug.LogError($"[TrainerAppear] 아바타 생성 중 오류 발생: {ex}");
+            Debug.LogWarning("[TrainerAppear] Coach Prefab(AI_Trainer)을 찾지 못해 자막/음성으로만 코칭합니다.");
         }
 
-        var look = Vector3.ProjectOnPlane(seat.position - pos, Vector3.up);
-        if (look.sqrMagnitude > 0.001f) coachAvatar.transform.rotation = Quaternion.LookRotation(look.normalized, Vector3.up);
+        if (coachAvatar != null)
+        {
+            var look = Vector3.ProjectOnPlane(seat.position - pos, Vector3.up);
+            if (look.sqrMagnitude > 0.001f)
+                coachAvatar.transform.rotation = Quaternion.LookRotation(look.normalized, Vector3.up);
+        }
 
         panel.SetActive(true);
     }
