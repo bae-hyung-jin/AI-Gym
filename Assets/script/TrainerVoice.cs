@@ -11,8 +11,14 @@ public class TrainerVoice : MonoBehaviour
 
     void Awake()
     {
-        if (audioSource == null) audioSource = GetComponent<AudioSource>();
+        EnsureAudioSource();
         if (client == null) client = FindFirstObjectByType<GeminiClient>();
+    }
+
+    void EnsureAudioSource()
+    {
+        if (audioSource == null) audioSource = GetComponent<AudioSource>();
+        if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
     }
 
     public void Say(string replyText)
@@ -23,6 +29,8 @@ public class TrainerVoice : MonoBehaviour
         replyText = replyText.Replace("AI 트레이너:", "").Trim();
         if (replyText.Length == 0 || replyText.StartsWith("[오류]") || replyText.StartsWith("지금 AI")) return;
 
+        EnsureAudioSource();
+
         // 새 대사가 오면 현재 재생 중인 오디오는 멈추고 새 티켓 발급
         if (audioSource != null)
         {
@@ -32,6 +40,8 @@ public class TrainerVoice : MonoBehaviour
 
         int requestTicket = ++currentTicket;
         Debug.Log($"[TrainerVoice] 대사 수신 (티켓 #{requestTicket}): {replyText}");
+
+        if (client == null) client = FindFirstObjectByType<GeminiClient>();
 
         if (client != null)
         {
@@ -44,8 +54,9 @@ public class TrainerVoice : MonoBehaviour
                     return;
                 }
 
-                if (clip != null && audioSource != null)
+                if (clip != null)
                 {
+                    EnsureAudioSource();
                     audioSource.clip = clip;
                     audioSource.volume = volume;
                     audioSource.Play();
@@ -53,13 +64,34 @@ public class TrainerVoice : MonoBehaviour
                 }
                 else
                 {
-                    Debug.LogWarning("[TrainerVoice] 음성 생성 실패 또는 AudioSource 누락");
+                    Debug.LogWarning($"[TrainerVoice] '{replyText}' 음성을 받지 못해 직접 재생을 시도합니다.");
+                    StartCoroutine(DirectGoogleTts(replyText, requestTicket));
                 }
             });
         }
         else
         {
-            Debug.LogWarning("[TrainerVoice] 인스펙터 창에서 GeminiClient를 연결해 주세요.");
+            StartCoroutine(DirectGoogleTts(replyText, requestTicket));
+        }
+    }
+
+    System.Collections.IEnumerator DirectGoogleTts(string text, int ticket)
+    {
+        string encoded = UnityEngine.Networking.UnityWebRequest.EscapeURL(text);
+        string url = "https://translate.google.com/translate_tts?ie=UTF-8&total=1&idx=0&client=tw-ob&tl=ko&q=" + encoded;
+        using var www = UnityEngine.Networking.UnityWebRequestMultimedia.GetAudioClip(url, AudioType.MPEG);
+        yield return www.SendWebRequest();
+        if (ticket == currentTicket && www.result == UnityEngine.Networking.UnityWebRequest.Result.Success)
+        {
+            var clip = UnityEngine.Networking.DownloadHandlerAudioClip.GetContent(www);
+            if (clip != null)
+            {
+                EnsureAudioSource();
+                audioSource.clip = clip;
+                audioSource.volume = volume;
+                audioSource.Play();
+                Debug.Log($"[TrainerVoice] 직접 음성 재생 완료 (티켓 #{ticket})");
+            }
         }
     }
 

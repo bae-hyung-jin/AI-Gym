@@ -76,6 +76,8 @@ public class GeminiClient : MonoBehaviour
     [SerializeField] string ttsModel = "gemini-3.8-flash-tts";
     [SerializeField] string ttsFallbackModel = "gemini-3.8-flash-lite-tts";
     [SerializeField] string voiceName = "Kore";
+    [SerializeField] bool preferGoogleTts = false;
+    [SerializeField] bool useGoogleTtsFallback = true;
 
     [Serializable] class TtsPrebuilt { public string voiceName; }
     [Serializable] class TtsVoiceCfg { public TtsPrebuilt prebuiltVoiceConfig; }
@@ -88,48 +90,137 @@ public class GeminiClient : MonoBehaviour
     [Serializable] class AudioCandidate { public AudioContent content; }
     [Serializable] class AudioResponse { public AudioCandidate[] candidates; }
 
+    // Interactions API schema
+    [Serializable] class TtsInterContent { public string type = "text"; public string text; }
+    [Serializable] class TtsInterInput { public string type = "user_input"; public TtsInterContent[] content; }
+    [Serializable] class TtsInterRespFormat { public string type = "audio"; public string mime_type = "audio/wav"; public int sample_rate = 24000; }
+    [Serializable] class TtsInterVoice { public string voice; }
+    [Serializable] class TtsInterGenCfg { public TtsInterVoice[] speech_config; }
+    [Serializable] class TtsInterReq
+    {
+        public string model;
+        public TtsInterInput[] input;
+        public TtsInterRespFormat response_format;
+        public TtsInterGenCfg generation_config;
+    }
+    [Serializable] class TtsInterAudio { public string data; public string mime_type; }
+    [Serializable] class TtsInterRes { public TtsInterAudio output_audio; }
+
     // 글을 음성으로 바꿔 AudioClip으로 돌려준다. 실패하면 null.
     public void Synthesize(string text, Action<AudioClip> onDone) => StartCoroutine(SynthRoutine(text, onDone));
 
     IEnumerator SynthRoutine(string text, Action<AudioClip> onDone)
     {
+        if (preferGoogleTts)
+        {
+            yield return StartCoroutine(GoogleTtsRoutine(text, onDone));
+            yield break;
+        }
+
         if (string.IsNullOrEmpty(apiKey))
         {
             using var keyReq = UnityWebRequest.Get(Application.streamingAssetsPath + "/gemini_key.txt");
             yield return keyReq.SendWebRequest();
-            if (keyReq.result != UnityWebRequest.Result.Success) { onDone(null); yield break; }
-            apiKey = keyReq.downloadHandler.text.Trim();
-        }
-        var body = new TtsRequest
-        {
-            contents = new[] { new Content { parts = new[] { new Part { text = text } } } },
-            generationConfig = new TtsGenCfg
+            if (keyReq.result == UnityWebRequest.Result.Success)
             {
-                responseModalities = new[] { "AUDIO" },
-                speechConfig = new TtsSpeechCfg { voiceConfig = new TtsVoiceCfg { prebuiltVoiceConfig = new TtsPrebuilt { voiceName = voiceName } } }
+                apiKey = keyReq.downloadHandler.text.Trim();
             }
-        };
-        var json = Encoding.UTF8.GetBytes(JsonUtility.ToJson(body));
-        foreach (var m in new[] { ttsModel, ttsFallbackModel })
-            for (var attempt = 0; attempt < 2; attempt++)
+        }
+
+        if (!string.IsNullOrEmpty(apiKey))
+        {
+            // 1. Interactions API 시도 (gemini-3.8-flash-tts 공식 규격)
+            var interBody = new TtsInterReq
+            {
+                model = ttsModel,
+                input = new[] { new TtsInterInput { content = new[] { new TtsInterContent { text = text } } } },
+                response_format = new TtsInterRespFormat(),
+                generation_config = new TtsInterGenCfg { speech_config = new[] { new TtsInterVoice { voice = voiceName } } }
+            };
+            var interJson = Encoding.UTF8.GetBytes(JsonUtility.ToJson(interBody));
+            using (var req = new UnityWebRequest("https://generativelanguage.googleapis.com/v1beta/interactions", "POST"))
+            {
+                req.uploadHandler = new UploadHandlerRaw(interJson);
+                req.downloadHandler = new DownloadHandlerBuffer();
+                req.SetRequestHeader("Content-Type", "application/json");
+                req.SetRequestHeader("x-goog-api-key", apiKey);
+                req.timeout = 5;
+                yield return req.SendWebRequest();
+                if (req.result == UnityWebRequest.Result.Success)
+                {
+                    var res = JsonUtility.FromJson<TtsInterRes>(req.downloadHandler.text);
+                    if (res?.output_audio != null && !string.IsNullOrEmpty(res.output_audio.data))
+                    {
+                        var clip = ToClip(Convert.FromBase64String(res.output_audio.data), res.output_audio.mime_type);
+                        if (clip != null) { onDone(clip); yield break; }
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"[Gemini Interactions TTS] 실패 {req.responseCode} {req.error}");
+                }
+            }
+
+            // 2. generateContent API 시도 (대체)
+            var body = new TtsRequest
+            {
+                contents = new[] { new Content { parts = new[] { new Part { text = text } } } },
+                generationConfig = new TtsGenCfg
+                {
+                    responseModalities = new[] { "AUDIO" },
+                    speechConfig = new TtsSpeechCfg { voiceConfig = new TtsVoiceCfg { prebuiltVoiceConfig = new TtsPrebuilt { voiceName = voiceName } } }
+                }
+            };
+            var json = Encoding.UTF8.GetBytes(JsonUtility.ToJson(body));
+            foreach (var m in new[] { ttsModel, ttsFallbackModel })
             {
                 using var req = new UnityWebRequest($"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent", "POST");
                 req.uploadHandler = new UploadHandlerRaw(json);
                 req.downloadHandler = new DownloadHandlerBuffer();
                 req.SetRequestHeader("Content-Type", "application/json");
                 req.SetRequestHeader("x-goog-api-key", apiKey);
+                req.timeout = 5;
                 yield return req.SendWebRequest();
                 if (req.result == UnityWebRequest.Result.Success)
                 {
                     var res = JsonUtility.FromJson<AudioResponse>(req.downloadHandler.text);
                     var d = res?.candidates != null && res.candidates.Length > 0 ? res.candidates[0].content?.parts?[0]?.inlineData : null;
-                    if (d != null && !string.IsNullOrEmpty(d.data)) { onDone(ToClip(Convert.FromBase64String(d.data), d.mimeType)); yield break; }
-                    break; // 응답은 왔지만 소리가 없다. 다음 모델로 넘어간다
+                    if (d != null && !string.IsNullOrEmpty(d.data))
+                    {
+                        var clip = ToClip(Convert.FromBase64String(d.data), d.mimeType);
+                        if (clip != null) { onDone(clip); yield break; }
+                    }
                 }
-                Debug.LogWarning($"[Gemini TTS] {m} 실패 {req.responseCode} {req.error}");
-                if (req.responseCode != 503 && req.responseCode != 429) break;
-                yield return new WaitForSeconds(1f);
             }
+        }
+
+        // 3. Google Translate TTS 폴백 (지연 없이 안정적인 음성 출력)
+        if (useGoogleTtsFallback)
+        {
+            Debug.Log($"[GeminiClient] Google TTS로 전환하여 음성을 합성합니다: \"{text}\"");
+            yield return StartCoroutine(GoogleTtsRoutine(text, onDone));
+            yield break;
+        }
+
+        onDone(null);
+    }
+
+    IEnumerator GoogleTtsRoutine(string text, Action<AudioClip> onDone)
+    {
+        string encoded = UnityWebRequest.EscapeURL(text);
+        string url = "https://translate.google.com/translate_tts?ie=UTF-8&total=1&idx=0&client=tw-ob&tl=ko&q=" + encoded;
+        using var www = UnityWebRequestMultimedia.GetAudioClip(url, AudioType.MPEG);
+        yield return www.SendWebRequest();
+        if (www.result == UnityWebRequest.Result.Success)
+        {
+            var clip = DownloadHandlerAudioClip.GetContent(www);
+            if (clip != null)
+            {
+                onDone(clip);
+                yield break;
+            }
+        }
+        Debug.LogWarning($"[Google TTS 실패] {www.error} (HTTP {www.responseCode})");
         onDone(null);
     }
 
