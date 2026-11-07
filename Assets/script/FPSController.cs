@@ -7,6 +7,7 @@ public class FPSController : MonoBehaviour
 {
     public Transform cameraTransform;   // 플레이어 자식 카메라
     public float moveSpeed = 5f;
+    public float sprintSpeed = 9f;      // Shift 키 누를 때 달리기/대시 속도
     public float jumpHeight = 1.2f;
     public float gravity = -20f;
     public float mouseSensitivity = 0.1f;
@@ -55,10 +56,12 @@ public class FPSController : MonoBehaviour
         pitch = Mathf.Clamp(pitch - look.y, -89f, 89f);
         cameraTransform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
 
-        // WASD 이동
+        // WASD 이동 + Shift 대시
         float x = (kb.dKey.isPressed ? 1 : 0) - (kb.aKey.isPressed ? 1 : 0);
         float z = (kb.wKey.isPressed ? 1 : 0) - (kb.sKey.isPressed ? 1 : 0);
-        Vector3 move = (transform.right * x + transform.forward * z).normalized * moveSpeed;
+        bool isSprinting = kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed;
+        float currentSpeed = isSprinting ? sprintSpeed : moveSpeed;
+        Vector3 move = (transform.right * x + transform.forward * z).normalized * currentSpeed;
 
         // 점프 + 중력
         if (controller.isGrounded && verticalVelocity < 0f) verticalVelocity = -2f;
