@@ -20,12 +20,60 @@ public class TrainerAppear : MonoBehaviour
     Text label;
     string cached;
     bool near, asking, busy;
+    Vector3 originalTrainerPos;
+    Quaternion originalTrainerRot;
+    TrainerIK trainerIK;
 
-    // 플레이어가 직접 운동하는 동안에는 트레이너를 숨긴다
+    // 플레이어가 직접 운동하는 동안에는 코칭 모드로 전환
     public void SetBusy(bool value) { busy = value; Refresh(); }
+
+    public void StartCoaching(Transform seat, Transform facing)
+    {
+        busy = true;
+        trainer.SetActive(true);
+        if (trainerIK != null) trainerIK.enabled = false; // 앉아서 바 잡는 IK 비활성화
+        if (trainerAnim != null)
+        {
+            trainerAnim.Rebind();
+            trainerAnim.Play("Idle", 0, 0f); // 서 있는 기본 자세
+        }
+
+        // 플레이어 의자 옆(약 1.3m 우측)에 서서 플레이어를 바라보게 배치
+        Vector3 rightDir = facing != null ? facing.right : trainer.transform.right;
+        Vector3 coachPos = seat.position + rightDir * 1.3f;
+        coachPos.y = seat.position.y;
+        trainer.transform.position = coachPos;
+
+        Vector3 lookDir = (seat.position - coachPos);
+        lookDir.y = 0f;
+        if (lookDir != Vector3.zero) trainer.transform.rotation = Quaternion.LookRotation(lookDir);
+
+        panel.SetActive(true);
+    }
+
+    public void StopCoaching()
+    {
+        busy = false;
+        if (trainerIK != null) trainerIK.enabled = true;
+        trainer.transform.position = originalTrainerPos;
+        trainer.transform.rotation = originalTrainerRot;
+        Refresh();
+    }
+
+    public void SayCoaching(string text)
+    {
+        if (label != null) label.text = "AI 트레이너: " + text;
+        if (voice != null) voice.Say(text);
+    }
 
     void Start()
     {
+        if (trainer != null)
+        {
+            originalTrainerPos = trainer.transform.position;
+            originalTrainerRot = trainer.transform.rotation;
+            trainerIK = trainer.GetComponent<TrainerIK>();
+        }
         var c = UiKit.MakeCanvas("TrainerSpeechCanvas", 40);
         panel = UiKit.Panel(c.transform, new Vector2(1500, 190), new Vector2(0, 120), new Color(0.1f, 0.13f, 0.2f, 0.92f), new Vector2(0.5f, 0f)).gameObject;
         label = UiKit.Label(panel.transform, font, "", 38, new Vector2(1420, 170), Vector2.zero, TextAnchor.MiddleLeft);

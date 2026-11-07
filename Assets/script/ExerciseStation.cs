@@ -75,8 +75,45 @@ public class ExerciseStation : MonoBehaviour
         machine.Update(0f);
 
         if (pull > 0.95f) wentDown = true;
-        else if (pull < 0.1f && wentDown) { wentDown = false; reps++; }
+        else if (pull < 0.1f && wentDown)
+        {
+            wentDown = false;
+            reps++;
+            OnRepCompleted(reps);
+        }
         hud.text = $"{machineName}   횟수 {reps}회\n스페이스·마우스 왼쪽: 당기기   E: 그만하기";
+    }
+
+    void OnRepCompleted(int count)
+    {
+        string coachMent = "";
+        switch (count)
+        {
+            case 1:
+                coachMent = "좋습니다! 광배근에 자극이 오시나요? 천천히 올라가세요.";
+                break;
+            case 3:
+                coachMent = "호흡 뱉으면서 당기고, 들이마시면서 버티세요! 아주 좋습니다.";
+                break;
+            case 5:
+                coachMent = "완벽한 리듬입니다! 허리 곧게 펴고 시선은 살짝 위를 보세요.";
+                break;
+            case 7:
+                coachMent = "조금만 더 힘내세요! 근육이 제대로 자극받고 있습니다.";
+                break;
+            case 10:
+                coachMent = "10회 돌파! 대단하십니다, 목표치 거의 다 왔어요!";
+                break;
+            default:
+                if (count % 5 == 0)
+                    coachMent = $"{count}회 돌파! 훌륭합니다. 끝까지 자세 유지하세요!";
+                break;
+        }
+
+        if (!string.IsNullOrEmpty(coachMent) && trainer != null)
+        {
+            trainer.SayCoaching(coachMent);
+        }
     }
 
     void LateUpdate()
@@ -94,7 +131,14 @@ public class ExerciseStation : MonoBehaviour
     {
         active = true; pull = 0; reps = 0; wentDown = false;
         prompt.gameObject.SetActive(false); hudRoot.SetActive(true); speech.text = "";
-        trainer.SetBusy(true);
+
+        // 트레이너가 의자 옆에 서서 코칭 시작
+        if (trainer != null)
+        {
+            trainer.StartCoaching(seatPoint, facing);
+            trainer.SayCoaching($"좋습니다! {machineName} 운동 시작합니다. 바를 가슴 쪽으로 천천히 당겨보세요.");
+        }
+
         machine.enabled = true; machine.speed = 0f;
 
         var f = Flat(facing.forward).normalized;
@@ -120,7 +164,14 @@ public class ExerciseStation : MonoBehaviour
         player.cameraTransform.localRotation = Quaternion.identity;
         cc.enabled = true; player.enabled = true;
         machine.Play("Pull", 0, 0f); machine.Update(0f); machine.speed = 1f; machine.enabled = false;
-        trainer.SetBusy(false);
+
+        // 운동 종료 시 마무리 코칭 멘트 후 원래 자리로 복귀
+        if (trainer != null)
+        {
+            if (reps > 0)
+                trainer.SayCoaching($"오늘 {machineName} 총 {reps}회 완료하셨습니다. 정말 고생 많으셨어요!");
+            trainer.StopCoaching();
+        }
 
         if (reps > 0) SessionLog.Add(machineName, reps); // 나갈 때 요약 카드에 쓴다
     }
