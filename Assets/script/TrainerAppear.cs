@@ -15,6 +15,7 @@ public class TrainerAppear : MonoBehaviour
     [SerializeField] float range = 5f;
     [SerializeField] string playerTag = "Player";
     [SerializeField] GameObject coachPrefab; // 플레이어가 운동할 때 옆에 서서 코칭할 '서 있는' AI 트레이너 아바타(프리팹/FBX)
+    [TextArea(2, 5), SerializeField] string customGreetingText; // 여기에 대사를 적어두면 AI 생성 대신 이 문구가 항상 고정으로 나옵니다 (비워두면 Gemini AI가 생성)
 
     Transform player;
     GameObject panel;
@@ -162,12 +163,18 @@ public class TrainerAppear : MonoBehaviour
         machine.speed = 1f; // 직접 운동할 때 0으로 멈춰 둔 것을 되돌린다
         machine.Play("Pull", 0, 0f);
         panel.SetActive(true);
+        if (!string.IsNullOrEmpty(customGreetingText))
+        {
+            label.text = "AI 트레이너: " + customGreetingText;
+            voice?.Say(customGreetingText);
+            return;
+        }
         if (cached != null) { label.text = "AI 트레이너: " + cached; voice?.Say(cached); return; }
         if (asking) return;
         asking = true;
         label.text = "AI 트레이너: 안녕하세요, 잠시만요...";
         client.Ask($"[참고: 손님이 입장 전에 불편하다고 고른 자세는 '{DoorSurvey.Summary}'. 해당되면 조심하라는 말을 한 마디만 넣을 것]\n" +
-                   $"손님이 {machineName} 기구 앞으로 다가왔다. 지금 내가 시범을 보이고 있다고 말하며, 이 운동이 어디에 좋은지와 천천히 하라는 말을 두 문장으로 안내해 줘.", reply =>
+                   $"손님이 {machineName} 기구 앞으로 다가왔다. 지금 내가 시범을 보이고 있다고 말하며, 이 운동이 어디에 좋은지와 천천히 하라는 말을 두 문장으로 안내해 줘. 영어 단어나 괄호()는 절대 쓰지 말고 순수 한국어로만 답해.", reply =>
         {
             asking = false;
             if (reply.StartsWith("[오류]"))

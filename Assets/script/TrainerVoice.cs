@@ -29,6 +29,11 @@ public class TrainerVoice : MonoBehaviour
         replyText = replyText.Replace("AI 트레이너:", "").Trim();
         if (replyText.Length == 0 || replyText.StartsWith("[오류]") || replyText.StartsWith("지금 AI")) return;
 
+        // () 또는 （） 괄호와 괄호 안의 단어 제거 (예: 바(Bar) -> 바, 덤벨(Dumbbell) -> 덤벨)
+        replyText = System.Text.RegularExpressions.Regex.Replace(replyText, @"[\(（][^)）]*[\)）]", "");
+        replyText = System.Text.RegularExpressions.Regex.Replace(replyText, @"\s+", " ").Trim();
+        if (replyText.Length == 0) return;
+
         EnsureAudioSource();
 
         // 새 대사가 오면 현재 재생 중인 오디오는 멈추고 새 티켓 발급
