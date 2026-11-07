@@ -5,7 +5,6 @@ using UnityEngine;
 
 // 에디터 로드 시 및 Tools 메뉴에서 실행
 // 1) Assets/Resources/AI_Trainer.prefab 자동 생성
-// 2) 씬의 TrainerAppear 컴포넌트에 Coach Prefab 자동 할당
 [InitializeOnLoad]
 public static class CoachSetup
 {
@@ -37,23 +36,8 @@ public static class CoachSetup
             Debug.Log($"[CoachSetup] {PrefabPath} 프리팹 생성 완료.");
         }
 
-        var targets = Object.FindObjectsByType<TrainerAppear>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-        foreach (var t in targets)
-        {
-            var so = new SerializedObject(t);
-            var prop = so.FindProperty("coachPrefab");
-            if (prop != null)
-            {
-                var cur = prop.objectReferenceValue;
-                if (cur == null || cur.name != model.name)
-                {
-                    prop.objectReferenceValue = prefab != null ? (Object)prefab : (Object)model;
-                    so.ApplyModifiedProperties();
-                    EditorSceneManager.MarkSceneDirty(t.gameObject.scene);
-                    Debug.Log($"[CoachSetup] {t.gameObject.name}의 TrainerAppear에 Coach Prefab 자동 연결 완료.");
-                }
-            }
-        }
+        // 씬의 TrainerAppear에는 연결하지 않는다. 코치 아바타는 TrainerAppear가 실행할 때 Resources에서 직접 불러온다.
+        // (프리팹 에셋을 씬에 저장하면 'Prefab 참조' 경고가 난다)
     }
 }
 #endif
