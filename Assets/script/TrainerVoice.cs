@@ -8,6 +8,7 @@ public class TrainerVoice : MonoBehaviour
     void Awake()
     {
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
+        if (geminiClient == null) geminiClient = FindFirstObjectByType<GeminiClient>();
     }
 
     public void Say(string replyText)
