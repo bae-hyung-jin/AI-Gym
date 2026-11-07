@@ -82,6 +82,7 @@ public class SummaryCard : MonoBehaviour
 
     void Update()
     {
+        if (root == null) return; // Start가 끝나 카드 UI가 만들어진 뒤부터 동작한다
         if (player == null) { var p = GameObject.FindGameObjectWithTag("Player"); if (p != null) player = p.transform; }
         if (player != null && !open)
         {
@@ -120,6 +121,7 @@ public class SummaryCard : MonoBehaviour
 
     void Display(Data d)
     {
+        if (d == null) return;
         Fill(d);
         if (open) return;
         open = true; root.SetActive(true); PlayerFreeze.Push();
@@ -127,6 +129,7 @@ public class SummaryCard : MonoBehaviour
 
     void Fill(Data d)
     {
+        if (d == null || body[0] == null) return; // 저장된 글을 못 읽었거나 UI가 아직 없으면 건너뛴다
         current = d;
         body[0].text = d.ok; body[1].text = d.ask; body[2].text = d.next; body[3].text = d.check;
         sub.text = "체험이 끝나면 다음에 무엇을 할지 네 칸으로 정리해\n현장 선생님께 이어 줍니다.   " + d.date + " · " + d.machine;

@@ -21,6 +21,7 @@ public static class CoachSetup
     [MenuItem("Tools/AI Trainer/Coach 아바타 연결 및 프리팹 생성")]
     public static void EnsureSetup()
     {
+        if (EditorApplication.isPlayingOrWillChangePlaymode) return; // 재생 중에는 씬을 고칠 수 없다
         var model = AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath);
         if (model == null) return;
 
