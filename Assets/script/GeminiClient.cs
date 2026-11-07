@@ -8,9 +8,13 @@ using UnityEngine.Networking;
 public class GeminiClient : MonoBehaviour
 {
     // GeminiClient.cs 상단 모델 선언부
-    [SerializeField] string model = "gemini-3.8-flash";             // 메인: 빠르고 서빙 용량이 큰 3.8 Flash
-    [SerializeField] string fallbackModel = "gemini-3.5-flash-lite"; // 대체: 503/429 발생 시 넘어갈 폴백 모델
-    [TextArea, SerializeField] string systemPrompt = "너는 어르신을 돕는 헬스장 AI 트레이너다. 두세 문장으로 쉽고 다정하게 한국어로 답한다.";
+    // 직접 재 보니 3.5-flash-lite가 1~2초, 3.8-flash는 과부하(503)로 7~30초였다. 빠른 쪽을 메인으로 쓴다.
+    [SerializeField] string model = "gemini-3.5-flash-lite";
+    [SerializeField] string fallbackModel = "gemini-3.1-flash-lite"; // 대체: 503/429 발생 시 넘어갈 폴백 모델
+    [TextArea, SerializeField] string systemPrompt =
+        "너는 어르신을 돕는 헬스장 AI 트레이너다. 두세 문장으로 쉽고 다정하게 한국어로 답한다. " +
+        "'광배근' 같은 어려운 말 대신 '등 근육'처럼 쉬운 말을 쓴다. 아프다는 말이 나오면 운동을 멈추고 쉬게 하며, 병이나 치료는 단정하지 않는다. " +
+        "횟수를 권할 때는 10회 안팎으로 가볍게, 쉬었다 해도 된다고 말한다.";
 
     [SerializeField] string fallbackApiKey; // Resources/gemini_key 또는 StreamingAssets 읽기 실패 시 쓸 보조 키
     string apiKey;
@@ -48,18 +52,19 @@ public class GeminiClient : MonoBehaviour
 
     void Awake()
     {
-        // 인스펙터에 구형 또는 과부하 모델명이 남아있는 경우 최신 모델로 자동 교체
-        if (model == "gemini-3.1-flash-lite" || model == "gemini-3.6-flash" || string.IsNullOrEmpty(model))
-            model = "gemini-3.8-flash";
-        if (fallbackModel == "gemini-3.5-flash" || fallbackModel == "gemini-3.1-pro" || string.IsNullOrEmpty(fallbackModel))
-            fallbackModel = "gemini-3.5-flash-lite";
+        // 씬에 예전 모델명(느리거나 과부하인 것)이 저장돼 있으면 빠른 모델로 바꾼다
+        if (string.IsNullOrEmpty(model) || model == "gemini-3.8-flash" || model == "gemini-3.6-flash" || model == "gemini-3.5-flash" || model == "gemini-3.1-flash-lite")
+            model = "gemini-3.5-flash-lite";
+        if (string.IsNullOrEmpty(fallbackModel) || fallbackModel == "gemini-3.5-flash" || fallbackModel == "gemini-3.5-flash-lite" || fallbackModel == "gemini-3.1-pro")
+            fallbackModel = "gemini-3.1-flash-lite";
 
         StartCoroutine(EnsureApiKey());
     }
 
     [Serializable] class Part { public string text; }
     [Serializable] class Content { public Part[] parts; }
-    [Serializable] class Request { public Content system_instruction; public Content[] contents; }
+    [Serializable] class GenCfg { public int maxOutputTokens = 220; } // 답이 길어지면 늦어지므로 짧게 끊는다
+    [Serializable] class Request { public Content system_instruction; public Content[] contents; public GenCfg generationConfig = new GenCfg(); }
     [Serializable] class Candidate { public Content content; }
     [Serializable] class Response { public Candidate[] candidates; }
 
@@ -90,9 +95,6 @@ public class GeminiClient : MonoBehaviour
         void AddM(string m) { if (!string.IsNullOrEmpty(m) && !models.Contains(m)) models.Add(m); }
         AddM(model);
         AddM(fallbackModel);
-        AddM("gemini-3.8-flash");
-        AddM("gemini-3.5-flash-lite");
-        AddM("gemini-3.1-flash-lite");
 
         foreach (var m in models)
         {
