@@ -15,7 +15,8 @@ public class TrainerAppear : MonoBehaviour
     [SerializeField] float range = 5f;
     [SerializeField] string playerTag = "Player";
     [SerializeField] GameObject coachPrefab; // 플레이어가 운동할 때 옆에 서서 코칭할 '서 있는' AI 트레이너 아바타(프리팹/FBX)
-    [TextArea(2, 5), SerializeField] string customGreetingText; // 여기에 대사를 적어두면 AI 생성 대신 이 문구가 항상 고정으로 나옵니다 (비워두면 Gemini AI가 생성)
+    [Header("▼ [고정 대사] 여기에 글을 적으면 AI 대신 이 문구가 나옵니다")]
+    [TextArea(3, 6), SerializeField] string customGreetingText; // 비워두면 Gemini AI가 생성, 글을 적으면 고정 출력
 
     Transform player;
     GameObject panel;
