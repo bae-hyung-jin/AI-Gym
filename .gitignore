@@ -113,3 +113,5 @@ InitTestScene*.unity*
 
 # Gemini API key (never commit)
 /[Aa]ssets/StreamingAssets/gemini_key.txt*
+/[Aa]ssets/Resources/gemini_key.txt*
+

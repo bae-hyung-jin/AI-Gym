@@ -12,7 +12,44 @@ public class GeminiClient : MonoBehaviour
     [SerializeField] string fallbackModel = "gemini-3.5-flash-lite"; // 대체: 503/429 발생 시 넘어갈 폴백 모델
     [TextArea, SerializeField] string systemPrompt = "너는 어르신을 돕는 헬스장 AI 트레이너다. 두세 문장으로 쉽고 다정하게 한국어로 답한다.";
 
+    [SerializeField] string fallbackApiKey; // Resources/gemini_key 또는 StreamingAssets 읽기 실패 시 쓸 보조 키
     string apiKey;
+
+    IEnumerator EnsureApiKey()
+    {
+        if (!string.IsNullOrEmpty(apiKey)) yield break;
+
+        // 1. Resources에서 즉시 로드 (네트워크 요청 없음, WebGL CORS/HTTP 차단 0%)
+        var textAsset = Resources.Load<TextAsset>("gemini_key");
+        if (textAsset != null && !string.IsNullOrEmpty(textAsset.text))
+        {
+            apiKey = textAsset.text.Trim();
+            yield break;
+        }
+
+        // 2. 인스펙터 보조 키 확인
+        if (!string.IsNullOrEmpty(fallbackApiKey))
+        {
+            apiKey = fallbackApiKey.Trim();
+            yield break;
+        }
+
+        // 3. StreamingAssets에서 다운로드 (안전한 예외 처리)
+        try
+        {
+            string path = Application.streamingAssetsPath + "/gemini_key.txt";
+            using var keyReq = UnityWebRequest.Get(path);
+            yield return keyReq.SendWebRequest();
+            if (keyReq.result == UnityWebRequest.Result.Success && !string.IsNullOrEmpty(keyReq.downloadHandler.text))
+            {
+                apiKey = keyReq.downloadHandler.text.Trim();
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogWarning($"[GeminiClient] StreamingAssets 키 로드 건너뜀: {ex.Message}");
+        }
+    }
 
     void Awake()
     {
@@ -21,6 +58,8 @@ public class GeminiClient : MonoBehaviour
             model = "gemini-3.8-flash";
         if (fallbackModel == "gemini-3.5-flash" || fallbackModel == "gemini-3.1-pro" || string.IsNullOrEmpty(fallbackModel))
             fallbackModel = "gemini-3.5-flash-lite";
+
+        StartCoroutine(EnsureApiKey());
     }
 
     [Serializable] class Part { public string text; }
@@ -34,12 +73,13 @@ public class GeminiClient : MonoBehaviour
 
     IEnumerator AskRoutine(string question, Action<string> onDone)
     {
+        yield return StartCoroutine(EnsureApiKey());
+
         if (string.IsNullOrEmpty(apiKey))
         {
-            using var keyReq = UnityWebRequest.Get(Application.streamingAssetsPath + "/gemini_key.txt");
-            yield return keyReq.SendWebRequest();
-            if (keyReq.result != UnityWebRequest.Result.Success) { onDone("[오류] StreamingAssets/gemini_key.txt 를 읽지 못했습니다."); yield break; }
-            apiKey = keyReq.downloadHandler.text.Trim();
+            Debug.LogWarning("[GeminiClient] API 키를 찾을 수 없어 기본 코칭 안내를 제공합니다.");
+            onDone("안녕하세요! 등을 곧게 펴고 천천히 바를 당겨보세요. 무리하지 마시고 호흡을 고르게 유지해 주시기 바랍니다.");
+            yield break;
         }
 
         var body = new Request
@@ -61,7 +101,8 @@ public class GeminiClient : MonoBehaviour
 
         foreach (var m in models)
         {
-            using var req = new UnityWebRequest($"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent", "POST");
+            var url = $"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={apiKey}";
+            using var req = new UnityWebRequest(url, "POST");
             req.uploadHandler = new UploadHandlerRaw(json);
             req.downloadHandler = new DownloadHandlerBuffer();
             req.SetRequestHeader("Content-Type", "application/json");
@@ -138,15 +179,7 @@ public class GeminiClient : MonoBehaviour
             yield break;
         }
 
-        if (string.IsNullOrEmpty(apiKey))
-        {
-            using var keyReq = UnityWebRequest.Get(Application.streamingAssetsPath + "/gemini_key.txt");
-            yield return keyReq.SendWebRequest();
-            if (keyReq.result == UnityWebRequest.Result.Success)
-            {
-                apiKey = keyReq.downloadHandler.text.Trim();
-            }
-        }
+        yield return StartCoroutine(EnsureApiKey());
 
         if (!string.IsNullOrEmpty(apiKey))
         {
@@ -159,7 +192,7 @@ public class GeminiClient : MonoBehaviour
                 generation_config = new TtsInterGenCfg { speech_config = new[] { new TtsInterVoice { voice = voiceName } } }
             };
             var interJson = Encoding.UTF8.GetBytes(JsonUtility.ToJson(interBody));
-            using (var req = new UnityWebRequest("https://generativelanguage.googleapis.com/v1beta/interactions", "POST"))
+            using (var req = new UnityWebRequest($"https://generativelanguage.googleapis.com/v1beta/interactions?key={apiKey}", "POST"))
             {
                 req.uploadHandler = new UploadHandlerRaw(interJson);
                 req.downloadHandler = new DownloadHandlerBuffer();
