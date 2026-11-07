@@ -28,7 +28,7 @@ public class TrainerChat : MonoBehaviour
         new[] { "몇 번 하면 돼요?", "처음에는 10회 정도면 충분해요. 중간에 쉬어도 괜찮고, 아프면 바로 멈추세요." },
     };
 
-    GameObject panel;
+    GameObject panel, openBtn;
     InputField input;
     Text answer;
     bool waiting;
@@ -38,9 +38,10 @@ public class TrainerChat : MonoBehaviour
     {
         var canvas = UiKit.MakeCanvas("ChatCanvas", 50);
         var t = canvas.transform;
-        UiKit.Btn(t, font, "궁금한 것 물어보기 (T)", 40, new Vector2(560, 110), new Vector2(-310, 80), new Color(0.15f, 0.55f, 0.45f, 0.95f), new Vector2(1, 0)).onClick.AddListener(Toggle);
+        openBtn = UiKit.Btn(t, font, "궁금한 것 물어보기 (T)", 40, new Vector2(560, 110), new Vector2(-310, 80), new Color(0.15f, 0.55f, 0.45f, 0.95f), new Vector2(1, 0)).gameObject;
+        openBtn.GetComponent<Button>().onClick.AddListener(Toggle);
 
-        panel = UiKit.Panel(t, new Vector2(1500, 1000), Vector2.zero, new Color(0.1f, 0.13f, 0.2f, 0.97f)).gameObject;
+        panel = UiKit.Panel(t, new Vector2(1500, 1000), Vector2.zero, new Color(0.1f, 0.13f, 0.2f, 1f)).gameObject; // 뒤가 비쳐 보이지 않게 불투명
         var p = panel.transform;
         UiKit.Label(p, font, "궁금한 것을 눌러 보세요", 52, new Vector2(1000, 90), new Vector2(0, 440));
         UiKit.Btn(p, font, "닫기", 40, new Vector2(200, 90), new Vector2(620, 440), new Color(0.45f, 0.25f, 0.25f)).onClick.AddListener(Toggle);
@@ -52,7 +53,8 @@ public class TrainerChat : MonoBehaviour
             UiKit.Btn(p, font, question, 42, new Vector2(700, 100), new Vector2(x, y), new Color(0.2f, 0.45f, 0.75f)).onClick.AddListener(() => ShowAnswer(canned));
         }
 
-        answer = UiKit.Label(p, font, "", 40, new Vector2(1400, 330), new Vector2(0, -75), TextAnchor.UpperLeft);
+        // 세 번째 줄 버튼(아래 끝 y=30)보다 아래에서 시작하게 둔다
+        answer = UiKit.Label(p, font, "", 40, new Vector2(1400, 340), new Vector2(0, -160), TextAnchor.UpperLeft);
 
         var field = UiKit.Panel(p, new Vector2(1000, 100), new Vector2(-190, -400), Color.white);
         var ph = UiKit.Label(field.transform, font, "직접 쓰셔도 돼요", 38, new Vector2(960, 90), Vector2.zero, TextAnchor.MiddleLeft, new Color(0.5f, 0.5f, 0.5f));
@@ -84,6 +86,7 @@ public class TrainerChat : MonoBehaviour
     {
         var show = !panel.activeSelf;
         panel.SetActive(show);
+        openBtn.SetActive(!show); // 창이 열려 있는 동안은 열기 버튼을 숨긴다
         if (show) { PlayerFreeze.Push(); answer.text = ""; }
         else { ticket++; waiting = false; PlayerFreeze.Pop(); } // 닫으면 기다리던 답은 버린다
     }
