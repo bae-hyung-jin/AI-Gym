@@ -39,9 +39,13 @@ public class TrainerAppear : MonoBehaviour
         var pos = seat.position + right * 1.2f + f * 0.4f; // 3인칭 카메라(앞-왼쪽)에서 잘 보이는 플레이어 오른쪽 옆
         pos.y = playerAnim.transform.position.y;
 
+#if UNITY_EDITOR
+        // 인스펙터에 지정하지 않았어도 에디터에서는 AI_Trainer 모델을 자동으로 쓴다(빌드에는 Tools > AI Trainer > Coach 연결 필요)
+        if (coachPrefab == null) coachPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Gym/AI_Trainer.fbx");
+#endif
         if (coachPrefab == null)
         {
-            Debug.LogWarning("[TrainerAppear] Coach Prefab이 비어 있어 아바타 없이 자막/음성으로만 코칭합니다. 서 있는 AI 트레이너 아바타를 인스펙터의 Coach Prefab에 넣어 주세요.");
+            Debug.LogWarning("[TrainerAppear] Coach Prefab이 비어 있어 아바타 없이 자막/음성으로만 코칭합니다. Tools > AI Trainer > Coach 아바타 연결을 실행해 주세요.");
             panel.SetActive(true);
             return;
         }
@@ -49,6 +53,7 @@ public class TrainerAppear : MonoBehaviour
         coachAvatar = Instantiate(coachPrefab, pos, Quaternion.identity);
         coachAvatar.name = "AI_Trainer_Coach";
         coachAvatar.SetActive(true);
+        if (coachAvatar.GetComponent<CoachStandPose>() == null) coachAvatar.AddComponent<CoachStandPose>(); // T자 자세 -> 서 있는 자세
 
         var look = Vector3.ProjectOnPlane(seat.position - pos, Vector3.up);
         if (look.sqrMagnitude > 0.001f) coachAvatar.transform.rotation = Quaternion.LookRotation(look.normalized, Vector3.up);
