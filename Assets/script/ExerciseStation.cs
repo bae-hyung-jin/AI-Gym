@@ -110,9 +110,10 @@ public class ExerciseStation : MonoBehaviour
                 break;
         }
 
-        if (!string.IsNullOrEmpty(coachMent) && trainer != null)
+        if (!string.IsNullOrEmpty(coachMent))
         {
-            trainer.SayCoaching(coachMent);
+            say("AI 트레이너: " + coachMent, 5f);
+            if (trainer != null) trainer.SayCoaching(coachMent);
         }
     }
 
@@ -133,10 +134,12 @@ public class ExerciseStation : MonoBehaviour
         prompt.gameObject.SetActive(false); hudRoot.SetActive(true); speech.text = "";
 
         // 트레이너가 의자 옆에 서서 코칭 시작
+        string startMent = $"좋습니다! {machineName} 운동 시작합니다. 바를 가슴 쪽으로 천천히 당겨보세요.";
+        say("AI 트레이너: " + startMent, 5f);
         if (trainer != null)
         {
             trainer.StartCoaching(seatPoint, facing);
-            trainer.SayCoaching($"좋습니다! {machineName} 운동 시작합니다. 바를 가슴 쪽으로 천천히 당겨보세요.");
+            trainer.SayCoaching(startMent);
         }
 
         machine.enabled = true; machine.speed = 0f;

@@ -3,7 +3,7 @@ using UnityEngine;
 // 트레이너의 말을 Gemini 음성(TTS)으로 읽어 준다. 새로운 말이 들어오면 이전 음성은 즉시 중단하고 최신 요청만 재생한다.
 public class TrainerVoice : MonoBehaviour
 {
-    [SerializeField] GeminiClient geminiClient;
+    [SerializeField] GeminiClient client;
     [SerializeField] AudioSource audioSource;
     [SerializeField, Range(0f, 1f)] float volume = 1f;
 
@@ -12,7 +12,7 @@ public class TrainerVoice : MonoBehaviour
     void Awake()
     {
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
-        if (geminiClient == null) geminiClient = FindFirstObjectByType<GeminiClient>();
+        if (client == null) client = FindFirstObjectByType<GeminiClient>();
     }
 
     public void Say(string replyText)
@@ -33,9 +33,9 @@ public class TrainerVoice : MonoBehaviour
         int requestTicket = ++currentTicket;
         Debug.Log($"[TrainerVoice] 대사 수신 (티켓 #{requestTicket}): {replyText}");
 
-        if (geminiClient != null)
+        if (client != null)
         {
-            geminiClient.Synthesize(replyText, clip =>
+            client.Synthesize(replyText, clip =>
             {
                 // 응답이 도착했을 때 더 새로운 요청이 들어왔다면 폐기
                 if (requestTicket != currentTicket)
