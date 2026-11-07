@@ -125,7 +125,7 @@ public class TrainerAppear : MonoBehaviour
         panel = UiKit.Panel(c.transform, new Vector2(1500, 190), new Vector2(0, 120), new Color(0.1f, 0.13f, 0.2f, 0.92f), new Vector2(0.5f, 0f)).gameObject;
         label = UiKit.Label(panel.transform, font, "", 38, new Vector2(1420, 170), Vector2.zero, TextAnchor.MiddleLeft);
         // 창 폭에 맞춰 늘어나게 해서, 창이 좁아도 글이 화면 밖으로 잘리지 않게 한다
-        var pr = (RectTransform)panel.transform; pr.anchorMin = new Vector2(0, 0); pr.anchorMax = new Vector2(1, 0); pr.pivot = new Vector2(0.5f, 0); pr.offsetMin = new Vector2(30, 100); pr.offsetMax = new Vector2(-30, 290);
+        var pr = (RectTransform)panel.transform; pr.anchorMin = new Vector2(0, 0); pr.anchorMax = new Vector2(1, 0); pr.pivot = new Vector2(0.5f, 0); pr.offsetMin = new Vector2(30, 260); pr.offsetMax = new Vector2(-30, 450); // 아래의 '질문하기' 버튼(~135)과 운동 중 큰 버튼(~240) 위로 올린다
         var lr = label.rectTransform; lr.anchorMin = Vector2.zero; lr.anchorMax = Vector2.one; lr.offsetMin = new Vector2(24, 8); lr.offsetMax = new Vector2(-24, -8);
         panel.SetActive(false);
         trainer.SetActive(false);

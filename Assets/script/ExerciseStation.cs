@@ -23,6 +23,9 @@ public class ExerciseStation : MonoBehaviour
 
     [SerializeField] int targetReps = 10;   // 무리하지 않게 10회
 
+    // 운동 중에는 질문 버튼·T키를 막아 화면 버튼과 겹치지 않게 한다
+    public static bool InUse { get; private set; }
+
     Text prompt, hud;
     GameObject hudRoot, controlsRoot;
     bool holdBtn; // 화면의 '당기기' 버튼을 누르고 있는지
@@ -38,11 +41,11 @@ public class ExerciseStation : MonoBehaviour
 
     void Start()
     {
-        cc = player.GetComponent<CharacterController>();
+        InUse = false; cc = player.GetComponent<CharacterController>();
         fpCam = player.cameraTransform.GetComponent<Camera>();
         var cg = new GameObject("ExerciseCamera"); cam = cg.AddComponent<Camera>(); cam.depth = 100f; cam.fieldOfView = 50f; cg.SetActive(false);
         var c = UiKit.MakeCanvas("ExerciseCanvas", 30);
-        prompt = UiKit.Label(c.transform, font, "E : 랫풀다운 운동하기", 44, new Vector2(900, 90), new Vector2(0, -200));
+        prompt = UiKit.Label(c.transform, font, "E : 랫풀다운 운동하기", 44, new Vector2(900, 90), new Vector2(0, -30)); // 아래 자막 패널 위
         prompt.gameObject.SetActive(false);
         hudRoot = UiKit.Panel(c.transform, new Vector2(1000, 150), new Vector2(0, -90), new Color(0.1f, 0.13f, 0.2f, 0.85f), new Vector2(0.5f, 1f)).gameObject;
         hud = UiKit.Label(hudRoot.transform, font, "", 40, new Vector2(960, 140), Vector2.zero);
@@ -51,6 +54,8 @@ public class ExerciseStation : MonoBehaviour
         // 키보드를 못 쓰셔도 되게 큰 버튼을 둔다
         controlsRoot = new GameObject("Controls", typeof(RectTransform));
         controlsRoot.transform.SetParent(c.transform, false);
+        var cr = (RectTransform)controlsRoot.transform; // 화면 전체로 늘려야 아래 기준 배치가 화면 아래에 붙는다
+        cr.anchorMin = Vector2.zero; cr.anchorMax = Vector2.one; cr.offsetMin = cr.offsetMax = Vector2.zero;
         var bottom = new Vector2(0.5f, 0f);
         var pullBtn = UiKit.Btn(controlsRoot.transform, font, "누르고 있으면 당겨져요", 54, new Vector2(820, 180), new Vector2(-250, 150), new Color(0.15f, 0.55f, 0.45f), bottom);
         var trig = pullBtn.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
@@ -143,7 +148,7 @@ public class ExerciseStation : MonoBehaviour
 
     void Begin()
     {
-        active = true; pull = 0; reps = 0; wentDown = false;
+        active = true; InUse = true; pull = 0; reps = 0; wentDown = false;
         prompt.gameObject.SetActive(false); hudRoot.SetActive(true);
         controlsRoot.SetActive(true); holdBtn = false;
         Cursor.lockState = CursorLockMode.None; Cursor.visible = true; // 화면의 큰 버튼을 누를 수 있게 한다
@@ -173,7 +178,7 @@ public class ExerciseStation : MonoBehaviour
 
     void End()
     {
-        active = false; hudRoot.SetActive(false); controlsRoot.SetActive(false); holdBtn = false;
+        active = false; InUse = false; hudRoot.SetActive(false); controlsRoot.SetActive(false); holdBtn = false;
         Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false;
         pose.enabled = false; cam.gameObject.SetActive(false); fpCam.enabled = true;
         foreach (var r in headParts) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly; // 다시 1인칭용으로

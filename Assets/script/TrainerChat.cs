@@ -78,7 +78,9 @@ public class TrainerChat : MonoBehaviour
     {
         var kb = Keyboard.current;
         if (kb == null) return;
-        if (!panel.activeSelf && !PlayerFreeze.Frozen && kb.tKey.wasPressedThisFrame) Toggle();
+        var showOpen = !panel.activeSelf && !ExerciseStation.InUse;
+        if (openBtn.activeSelf != showOpen) openBtn.SetActive(showOpen); // 운동 중에는 큰 운동 버튼과 겹치지 않게 숨긴다
+        if (showOpen && !PlayerFreeze.Frozen && kb.tKey.wasPressedThisFrame) Toggle();
         else if (panel.activeSelf && kb.escapeKey.wasPressedThisFrame) Toggle();
     }
 
