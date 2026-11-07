@@ -32,21 +32,23 @@ public class TrainerAppear : MonoBehaviour
         busy = true;
         trainer.SetActive(true);
         if (trainerIK != null) trainerIK.enabled = false; // 앉아서 바 잡는 IK 비활성화
-        if (trainerAnim != null)
-        {
-            trainerAnim.Rebind();
-            trainerAnim.Play("Idle", 0, 0f); // 서 있는 기본 자세
-        }
-
-        // 플레이어 의자 옆(약 1.3m 우측)에 서서 플레이어를 바라보게 배치
+        // 카메라 시야에 확실히 들어오는 위치 (의자 기준 왼쪽 대각선 앞 1.4m)
+        Vector3 fwd = facing != null ? facing.forward : trainer.transform.forward;
         Vector3 rightDir = facing != null ? facing.right : trainer.transform.right;
-        Vector3 coachPos = seat.position + rightDir * 1.3f;
+        Vector3 coachPos = seat.position + fwd * 0.8f - rightDir * 1.3f;
         coachPos.y = seat.position.y;
         trainer.transform.position = coachPos;
 
+        // 플레이어를 바라보게 회전
         Vector3 lookDir = (seat.position - coachPos);
         lookDir.y = 0f;
         if (lookDir != Vector3.zero) trainer.transform.rotation = Quaternion.LookRotation(lookDir);
+
+        if (trainerAnim != null)
+        {
+            trainerAnim.Play("AI_Trainer|AI_TrainerAction", 0, 0f);
+            trainerAnim.speed = 0.8f; // 코칭 제스처처럼 부드럽게 움직임
+        }
 
         panel.SetActive(true);
     }
