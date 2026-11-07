@@ -66805,7 +66805,6 @@ MonoBehaviour:
   machineName: "\uB7AB\uD480\uB2E4\uC6B4"
   range: 5
   playerTag: Player
-  coachPrefab: {fileID: 919132149155446097, guid: f3d0a38efe5696846870e3f433657f31, type: 3}
 --- !u!114 &2051067939
 MonoBehaviour:
   m_ObjectHideFlags: 0
