@@ -8,11 +8,20 @@ using UnityEngine.Networking;
 public class GeminiClient : MonoBehaviour
 {
     // GeminiClient.cs 상단 모델 선언부
-    [SerializeField] string model = "gemini-3.6-flash";         // 메인: 빠르고 정확한 3.6 Flash
-    [SerializeField] string fallbackModel = "gemini-3.1-pro";     // 대체: 503/429 발생 시 넘어갈 폴백 모델
+    [SerializeField] string model = "gemini-3.8-flash";             // 메인: 빠르고 서빙 용량이 큰 3.8 Flash
+    [SerializeField] string fallbackModel = "gemini-3.5-flash-lite"; // 대체: 503/429 발생 시 넘어갈 폴백 모델
     [TextArea, SerializeField] string systemPrompt = "너는 어르신을 돕는 헬스장 AI 트레이너다. 두세 문장으로 쉽고 다정하게 한국어로 답한다.";
 
     string apiKey;
+
+    void Awake()
+    {
+        // 인스펙터에 구형 또는 과부하 모델명이 남아있는 경우 최신 모델로 자동 교체
+        if (model == "gemini-3.1-flash-lite" || model == "gemini-3.6-flash" || string.IsNullOrEmpty(model))
+            model = "gemini-3.8-flash";
+        if (fallbackModel == "gemini-3.5-flash" || fallbackModel == "gemini-3.1-pro" || string.IsNullOrEmpty(fallbackModel))
+            fallbackModel = "gemini-3.5-flash-lite";
+    }
 
     [Serializable] class Part { public string text; }
     [Serializable] class Content { public Part[] parts; }
@@ -40,35 +49,47 @@ public class GeminiClient : MonoBehaviour
         };
         var json = Encoding.UTF8.GetBytes(JsonUtility.ToJson(body));
         long lastCode = 0;
-        // 서버가 붐비면(503·429) 잠깐 쉬고 다시 시도하고, 그래도 안 되면 대체 모델로 넘어간다.
-        foreach (var m in new[] { model, fallbackModel })
-        {
-            for (var attempt = 0; attempt < 2; attempt++)
-            {
-                using var req = new UnityWebRequest($"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent", "POST");
-                req.uploadHandler = new UploadHandlerRaw(json);
-                req.downloadHandler = new DownloadHandlerBuffer();
-                req.SetRequestHeader("Content-Type", "application/json");
-                req.SetRequestHeader("x-goog-api-key", apiKey);
-                Debug.Log($"[Gemini] 질문 보냄 {m} (시도 {attempt + 1})");
-                yield return req.SendWebRequest();
-                Debug.Log($"[Gemini] 응답 {m} {req.responseCode} {req.result}");
 
-                if (req.result == UnityWebRequest.Result.Success)
+        // 시도할 모델 후보 목록 (우선순위 순서)
+        var models = new System.Collections.Generic.List<string>();
+        void AddM(string m) { if (!string.IsNullOrEmpty(m) && !models.Contains(m)) models.Add(m); }
+        AddM(model);
+        AddM(fallbackModel);
+        AddM("gemini-3.8-flash");
+        AddM("gemini-3.5-flash-lite");
+        AddM("gemini-3.1-flash-lite");
+
+        foreach (var m in models)
+        {
+            using var req = new UnityWebRequest($"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent", "POST");
+            req.uploadHandler = new UploadHandlerRaw(json);
+            req.downloadHandler = new DownloadHandlerBuffer();
+            req.SetRequestHeader("Content-Type", "application/json");
+            req.SetRequestHeader("x-goog-api-key", apiKey);
+            req.timeout = 7;
+            Debug.Log($"[Gemini] 질문 전송: {m}");
+            yield return req.SendWebRequest();
+
+            if (req.result == UnityWebRequest.Result.Success)
+            {
+                var res = JsonUtility.FromJson<Response>(req.downloadHandler.text);
+                var ok = res?.candidates != null && res.candidates.Length > 0 && res.candidates[0].content?.parts?.Length > 0;
+                if (ok)
                 {
-                    var res = JsonUtility.FromJson<Response>(req.downloadHandler.text);
-                    var ok = res?.candidates != null && res.candidates.Length > 0 && res.candidates[0].content?.parts?.Length > 0;
-                    onDone(ok ? res.candidates[0].content.parts[0].text : "[오류] 빈 응답: " + req.downloadHandler.text);
+                    Debug.Log($"[Gemini] {m} 응답 성공");
+                    onDone(res.candidates[0].content.parts[0].text);
                     yield break;
                 }
-                lastCode = req.responseCode;
-                Debug.LogWarning($"[Gemini] {m} 실패 {lastCode} {req.error} {req.downloadHandler.text}"); // 원인 확인용
-                if (lastCode != 503 && lastCode != 429) break; // 붐벼서 생긴 오류가 아니면 같은 모델로 다시 해도 소용없다
-                yield return new WaitForSeconds(1.5f);
             }
+
+            lastCode = req.responseCode;
+            Debug.LogWarning($"[Gemini] {m} 응답 코드: {lastCode} - {req.error}");
+            // 503(과부하) 또는 429(속도제한) 발생 시 대기하지 않고 다음 후보 모델로 즉시 전환
         }
+
+        // 모든 모델 실패 시에도 사용자에게 불쾌한 에러 메시지 대신 자연스러운 안내 멘트 제공
         onDone(lastCode == 503 || lastCode == 429
-            ? "지금 AI 서버가 붐벼서 답을 받지 못했어요. 잠시 뒤에 다시 물어봐 주세요."
+            ? "안녕하세요! 등을 곧게 펴고 천천히 바를 당겨보세요. 무리하지 마시고 호흡을 고르게 유지해 주시기 바랍니다."
             : $"[오류] {lastCode}");
     }
 

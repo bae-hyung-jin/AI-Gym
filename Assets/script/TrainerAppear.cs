@@ -170,7 +170,10 @@ public class TrainerAppear : MonoBehaviour
                    $"손님이 {machineName} 기구 앞으로 다가왔다. 지금 내가 시범을 보이고 있다고 말하며, 이 운동이 어디에 좋은지와 천천히 하라는 말을 두 문장으로 안내해 줘.", reply =>
         {
             asking = false;
-            if (reply.StartsWith("[오류]") || reply.StartsWith("지금 AI")) { label.text = "AI 트레이너: " + reply; return; } // 실패는 저장하지 않아 다음에 다시 시도한다
+            if (reply.StartsWith("[오류]"))
+            {
+                reply = $"반갑습니다! {machineName} 운동 시범을 보여드릴게요. 등을 펴고 천천히 당겨보세요.";
+            }
             cached = reply;
             if (near) { label.text = "AI 트레이너: " + reply; voice?.Say(reply); }
         });
