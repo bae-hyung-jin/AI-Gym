@@ -20,14 +20,14 @@ public class ExerciseStation : MonoBehaviour
 
     [SerializeField] float fullPullTime = 0.4f; // 기구 클립에서 바가 가장 내려온 시점(0~1)
 
-    Text prompt, hud, speech;
-    GameObject hudRoot, speechRoot;
+    Text prompt, hud;
+    GameObject hudRoot;
     CharacterController cc;
     bool active, wentDown;
     float pull;
     int reps;
     Vector3 exitPos;
-    float speechUntil, yaw, pitch;
+    float yaw, pitch;
     Quaternion baseRot;
     Camera cam, fpCam;
     Renderer[] headParts;
@@ -43,22 +43,12 @@ public class ExerciseStation : MonoBehaviour
         hudRoot = UiKit.Panel(c.transform, new Vector2(1000, 150), new Vector2(0, -90), new Color(0.1f, 0.13f, 0.2f, 0.85f), new Vector2(0.5f, 1f)).gameObject;
         hud = UiKit.Label(hudRoot.transform, font, "", 40, new Vector2(960, 140), Vector2.zero);
         hudRoot.SetActive(false);
-
-        // 하단 AI 트레이너 실시간 코칭 자막 패널
-        speechRoot = UiKit.Panel(c.transform, new Vector2(1400, 140), new Vector2(0, 110), new Color(0.1f, 0.13f, 0.2f, 0.92f), new Vector2(0.5f, 0f)).gameObject;
-        speech = UiKit.Label(speechRoot.transform, font, "", 38, new Vector2(1340, 120), Vector2.zero, TextAnchor.MiddleCenter, new Color(1f, 0.9f, 0.4f));
-        speechRoot.SetActive(false);
     }
 
     void Update()
     {
         var kb = Keyboard.current; var mouse = Mouse.current;
         if (kb == null || mouse == null) return;
-        if (speechRoot != null && speechRoot.activeSelf && Time.time > speechUntil)
-        {
-            speechRoot.SetActive(false);
-            speech.text = "";
-        }
 
         if (!active)
         {
@@ -116,11 +106,8 @@ public class ExerciseStation : MonoBehaviour
                 break;
         }
 
-        if (!string.IsNullOrEmpty(coachMent))
-        {
-            say("AI 트레이너: " + coachMent, 5f);
-            if (trainer != null) trainer.SayCoaching(coachMent);
-        }
+        if (!string.IsNullOrEmpty(coachMent) && trainer != null)
+            trainer.SayCoaching(coachMent);
     }
 
     void LateUpdate()
@@ -137,16 +124,7 @@ public class ExerciseStation : MonoBehaviour
     void Begin()
     {
         active = true; pull = 0; reps = 0; wentDown = false;
-        prompt.gameObject.SetActive(false); hudRoot.SetActive(true); speech.text = "";
-
-        // 트레이너가 의자 옆에 서서 코칭 시작
-        string startMent = $"좋습니다! {machineName} 운동 시작합니다. 바를 가슴 쪽으로 천천히 당겨보세요.";
-        say("AI 트레이너: " + startMent, 5f);
-        if (trainer != null)
-        {
-            trainer.StartCoaching(seatPoint, facing);
-            trainer.SayCoaching(startMent);
-        }
+        prompt.gameObject.SetActive(false); hudRoot.SetActive(true);
 
         machine.enabled = true; machine.speed = 0f;
 
@@ -162,6 +140,13 @@ public class ExerciseStation : MonoBehaviour
         headParts = parts.ToArray();
         pose.enabled = true;
         fpCam.enabled = false; cam.gameObject.SetActive(true);
+
+        // AI 트레이너 코치 아바타가 플레이어 옆에 서서 코칭을 시작한다
+        if (trainer != null)
+        {
+            trainer.StartCoaching(seatPoint, facing, an);
+            trainer.SayCoaching($"좋습니다! {machineName} 운동 시작합니다. 바를 가슴 쪽으로 천천히 당겨보세요.");
+        }
     }
 
     void End()
@@ -174,21 +159,14 @@ public class ExerciseStation : MonoBehaviour
         cc.enabled = true; player.enabled = true;
         machine.Play("Pull", 0, 0f); machine.Update(0f); machine.speed = 1f; machine.enabled = false;
 
-        // 운동 종료 시 마무리 코칭 멘트 후 원래 자리로 복귀
+        // 코치 아바타를 치우고(시범용 트레이너가 다시 나타남) 마무리 멘트를 한다
         if (trainer != null)
         {
+            trainer.StopCoaching();
             if (reps > 0)
                 trainer.SayCoaching($"오늘 {machineName} 총 {reps}회 완료하셨습니다. 정말 고생 많으셨어요!");
-            trainer.StopCoaching();
         }
 
         if (reps > 0) SessionLog.Add(machineName, reps); // 나갈 때 요약 카드에 쓴다
-    }
-
-    void say(string text, float seconds)
-    {
-        if (speechRoot != null) speechRoot.SetActive(true);
-        if (speech != null) speech.text = text;
-        speechUntil = Time.time + seconds;
     }
 }

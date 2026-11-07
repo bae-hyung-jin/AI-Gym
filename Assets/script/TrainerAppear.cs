@@ -20,62 +20,58 @@ public class TrainerAppear : MonoBehaviour
     Text label;
     string cached;
     bool near, asking, busy;
-    Vector3 originalTrainerPos;
-    Quaternion originalTrainerRot;
-    TrainerIK trainerIK;
+    GameObject coachAvatar; // 플레이어가 운동할 때 옆에 서 있는 코치 아바타(플레이어 모델 복제)
 
-    // 플레이어가 직접 운동하는 동안에는 코칭 모드로 전환
+    // 플레이어가 직접 운동하는 동안에는 트레이너를 숨긴다
     public void SetBusy(bool value) { busy = value; Refresh(); }
 
-    public void StartCoaching(Transform seat, Transform facing)
+    // 플레이어가 직접 운동할 때: 기구에 앉은 시범용 트레이너는 숨기고, 서 있는 코치 아바타를 플레이어 옆에 세운다.
+    // 시범용 트레이너 모델은 '기구에 앉아 당기는 동작'이 통째로 구워져 있어 서 있게 할 수 없다.
+    public void StartCoaching(Transform seat, Transform facing, Animator playerAnim)
     {
         busy = true;
-        trainer.SetActive(true);
-        if (trainerIK != null) trainerIK.enabled = false; // 앉아서 바 잡는 IK 비활성화
-        // 카메라 시야에 확실히 들어오는 위치 (의자 기준 왼쪽 대각선 앞 1.4m)
-        Vector3 fwd = facing != null ? facing.forward : trainer.transform.forward;
-        Vector3 rightDir = facing != null ? facing.right : trainer.transform.right;
-        Vector3 coachPos = seat.position + fwd * 0.8f - rightDir * 1.3f;
-        coachPos.y = seat.position.y;
-        trainer.transform.position = coachPos;
+        trainer.SetActive(false);
+        if (coachAvatar != null) Destroy(coachAvatar);
 
-        // 플레이어를 바라보게 회전
-        Vector3 lookDir = (seat.position - coachPos);
-        lookDir.y = 0f;
-        if (lookDir != Vector3.zero) trainer.transform.rotation = Quaternion.LookRotation(lookDir);
+        var f = Vector3.ProjectOnPlane(facing.forward, Vector3.up).normalized;
+        var right = Vector3.Cross(Vector3.up, f);
+        var pos = seat.position + right * 1.2f + f * 0.4f; // 3인칭 카메라(앞-왼쪽)에서 잘 보이는 플레이어 오른쪽 옆
+        pos.y = playerAnim.transform.position.y;
 
-        if (trainerAnim != null)
-        {
-            trainerAnim.Play("AI_Trainer|AI_TrainerAction", 0, 0f);
-            trainerAnim.speed = 0.8f; // 코칭 제스처처럼 부드럽게 움직임
-        }
+        coachAvatar = Instantiate(playerAnim.gameObject, pos, Quaternion.identity);
+        coachAvatar.name = "AI_Trainer_Coach";
+        foreach (var ev in coachAvatar.GetComponents<AnimationEventReceiver>()) Destroy(ev);
+        // 1인칭에서 가려 둔 머리카락·모자도 보이게 한다
+        foreach (var r in coachAvatar.GetComponentsInChildren<Renderer>(true))
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+
+        var look = Vector3.ProjectOnPlane(seat.position - pos, Vector3.up);
+        if (look.sqrMagnitude > 0.001f) coachAvatar.transform.rotation = Quaternion.LookRotation(look.normalized, Vector3.up);
+
+        var an = coachAvatar.GetComponent<Animator>(); // 서 있는 기본 자세
+        an.applyRootMotion = false;
+        an.SetFloat("Speed", 0f); an.SetFloat("MotionSpeed", 1f);
+        an.SetBool("Grounded", true); an.SetBool("Jump", false); an.SetBool("FreeFall", false);
 
         panel.SetActive(true);
     }
 
     public void StopCoaching()
     {
+        if (coachAvatar != null) Destroy(coachAvatar);
         busy = false;
-        if (trainerIK != null) trainerIK.enabled = true;
-        trainer.transform.position = originalTrainerPos;
-        trainer.transform.rotation = originalTrainerRot;
+        near = false; // 시범용 트레이너가 다시 나타나도록 한다
         Refresh();
     }
 
     public void SayCoaching(string text)
     {
-        if (label != null) label.text = "AI 트레이너: " + text;
-        if (voice != null) voice.Say(text);
+        label.text = "AI 트레이너: " + text;
+        voice?.Say(text);
     }
 
     void Start()
     {
-        if (trainer != null)
-        {
-            originalTrainerPos = trainer.transform.position;
-            originalTrainerRot = trainer.transform.rotation;
-            trainerIK = trainer.GetComponent<TrainerIK>();
-        }
         var c = UiKit.MakeCanvas("TrainerSpeechCanvas", 40);
         panel = UiKit.Panel(c.transform, new Vector2(1500, 190), new Vector2(0, 120), new Color(0.1f, 0.13f, 0.2f, 0.92f), new Vector2(0.5f, 0f)).gameObject;
         label = UiKit.Label(panel.transform, font, "", 38, new Vector2(1420, 170), Vector2.zero, TextAnchor.MiddleLeft);
