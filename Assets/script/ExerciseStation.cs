@@ -21,7 +21,7 @@ public class ExerciseStation : MonoBehaviour
     [SerializeField] float fullPullTime = 0.4f; // 기구 클립에서 바가 가장 내려온 시점(0~1)
 
     Text prompt, hud, speech;
-    GameObject hudRoot;
+    GameObject hudRoot, speechRoot;
     CharacterController cc;
     bool active, wentDown;
     float pull;
@@ -43,16 +43,22 @@ public class ExerciseStation : MonoBehaviour
         hudRoot = UiKit.Panel(c.transform, new Vector2(1000, 150), new Vector2(0, -90), new Color(0.1f, 0.13f, 0.2f, 0.85f), new Vector2(0.5f, 1f)).gameObject;
         hud = UiKit.Label(hudRoot.transform, font, "", 40, new Vector2(960, 140), Vector2.zero);
         hudRoot.SetActive(false);
-        speech = UiKit.Label(c.transform, font, "", 38, new Vector2(1500, 170), new Vector2(0, 150), TextAnchor.MiddleCenter);
-        speech.rectTransform.anchorMin = speech.rectTransform.anchorMax = new Vector2(0.5f, 0f);
-        speech.gameObject.AddComponent<Shadow>();
+
+        // 하단 AI 트레이너 실시간 코칭 자막 패널
+        speechRoot = UiKit.Panel(c.transform, new Vector2(1400, 140), new Vector2(0, 110), new Color(0.1f, 0.13f, 0.2f, 0.92f), new Vector2(0.5f, 0f)).gameObject;
+        speech = UiKit.Label(speechRoot.transform, font, "", 38, new Vector2(1340, 120), Vector2.zero, TextAnchor.MiddleCenter, new Color(1f, 0.9f, 0.4f));
+        speechRoot.SetActive(false);
     }
 
     void Update()
     {
         var kb = Keyboard.current; var mouse = Mouse.current;
         if (kb == null || mouse == null) return;
-        if (speech.text != "" && Time.time > speechUntil) speech.text = "";
+        if (speechRoot != null && speechRoot.activeSelf && Time.time > speechUntil)
+        {
+            speechRoot.SetActive(false);
+            speech.text = "";
+        }
 
         if (!active)
         {
@@ -179,5 +185,10 @@ public class ExerciseStation : MonoBehaviour
         if (reps > 0) SessionLog.Add(machineName, reps); // 나갈 때 요약 카드에 쓴다
     }
 
-    void say(string text, float seconds) { speech.text = text; speechUntil = Time.time + seconds; }
+    void say(string text, float seconds)
+    {
+        if (speechRoot != null) speechRoot.SetActive(true);
+        if (speech != null) speech.text = text;
+        speechUntil = Time.time + seconds;
+    }
 }

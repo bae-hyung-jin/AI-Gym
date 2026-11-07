@@ -93,6 +93,7 @@ public class TrainerAppear : MonoBehaviour
             if (p == null) return;
             player = p.transform;
         }
+        if (busy) return; // 코칭 중에는 거리 계산 및 Disappear 방지
         var d = Vector2.Distance(new Vector2(player.position.x, player.position.z), new Vector2((anchor != null ? anchor : trainer.transform).position.x, (anchor != null ? anchor : trainer.transform).position.z));
         dist = d;
         Refresh();
