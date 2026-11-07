@@ -7,8 +7,9 @@ using UnityEngine.Networking;
 // Gemini에 질문하고 답을 문자열로 돌려준다. 키는 StreamingAssets/gemini_key.txt 한 줄(Git 제외 파일)에서 읽는다.
 public class GeminiClient : MonoBehaviour
 {
-    [SerializeField] string model = "gemini-3.1-flash-lite"; // 가볍고 덜 붐빈다. 1.5·2.5 계열은 신규 키로 못 쓴다(404)
-    [SerializeField] string fallbackModel = "gemini-3.5-flash"; // 기본 모델이 붐빌 때 쓰는 모델
+    // GeminiClient.cs 상단 모델 선언부
+    [SerializeField] string model = "gemini-3.6-flash";         // 메인: 빠르고 정확한 3.6 Flash
+    [SerializeField] string fallbackModel = "gemini-3.1-pro";     // 대체: 503/429 발생 시 넘어갈 폴백 모델
     [TextArea, SerializeField] string systemPrompt = "너는 어르신을 돕는 헬스장 AI 트레이너다. 두세 문장으로 쉽고 다정하게 한국어로 답한다.";
 
     string apiKey;
@@ -136,20 +137,48 @@ public class GeminiClient : MonoBehaviour
     static AudioClip ToClip(byte[] b, string mime)
     {
         int rate = 24000, ch = 1, start = 0;
+        int dataLength = b.Length;
+
+        // RIFF WAV 헤더 분석 시 data 크기만큼만 정확히 자름 (후미 잡음 방지)
         if (b.Length > 44 && b[0] == 'R' && b[1] == 'I' && b[2] == 'F' && b[3] == 'F')
         {
-            ch = BitConverter.ToInt16(b, 22); rate = BitConverter.ToInt32(b, 24);
-            for (var i = 12; i + 8 < b.Length;) // 'data' 조각을 찾는다
+            ch = BitConverter.ToInt16(b, 22);
+            rate = BitConverter.ToInt32(b, 24);
+            for (var i = 12; i + 8 < b.Length;)
             {
                 var size = BitConverter.ToInt32(b, i + 4);
-                if (b[i] == 'd' && b[i + 1] == 'a' && b[i + 2] == 't' && b[i + 3] == 'a') { start = i + 8; break; }
+                if (b[i] == 'd' && b[i + 1] == 'a' && b[i + 2] == 't' && b[i + 3] == 'a')
+                {
+                    start = i + 8;
+                    dataLength = Mathf.Min(b.Length, start + size);
+                    break;
+                }
                 i += 8 + size;
             }
         }
-        else if (mime != null && mime.Contains("rate=")) int.TryParse(mime.Substring(mime.IndexOf("rate=") + 5).Split(';')[0], out rate);
-        var n = (b.Length - start) / 2;
+        else if (mime != null && mime.Contains("rate="))
+        {
+            int.TryParse(mime.Substring(mime.IndexOf("rate=") + 5).Split(';')[0], out rate);
+        }
+
+        var n = (dataLength - start) / 2;
+        if (n <= 0) return null;
+
         var f = new float[n];
-        for (var i = 0; i < n; i++) f[i] = BitConverter.ToInt16(b, start + i * 2) / 32768f;
+        for (var i = 0; i < n; i++)
+        {
+            f[i] = BitConverter.ToInt16(b, start + i * 2) / 32768f;
+        }
+
+        // 끝부분 0.05초 페이드아웃 (화이트 노이즈 제거)
+        int fadeLength = Mathf.Min(f.Length, 1200);
+        for (int i = 0; i < fadeLength; i++)
+        {
+            int index = f.Length - 1 - i;
+            float fadeRatio = (float)i / fadeLength;
+            f[index] *= fadeRatio;
+        }
+
         var clip = AudioClip.Create("trainer_voice", n / ch, ch, rate, false);
         clip.SetData(f, 0);
         return clip;
