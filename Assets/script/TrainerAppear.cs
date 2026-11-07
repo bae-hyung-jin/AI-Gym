@@ -50,10 +50,21 @@ public class TrainerAppear : MonoBehaviour
             return;
         }
 
-        coachAvatar = Instantiate(coachPrefab, pos, Quaternion.identity);
-        coachAvatar.name = "AI_Trainer_Coach";
-        coachAvatar.SetActive(true);
-        if (coachAvatar.GetComponent<CoachStandPose>() == null) coachAvatar.AddComponent<CoachStandPose>(); // T자 자세 -> 서 있는 자세
+        try
+        {
+            var go = coachPrefab as GameObject;
+            coachAvatar = go != null ? Instantiate(go, pos, Quaternion.identity) : Instantiate(coachPrefab, pos, Quaternion.identity) as GameObject;
+            if (coachAvatar != null)
+            {
+                coachAvatar.name = "AI_Trainer_Coach";
+                coachAvatar.SetActive(true);
+                if (coachAvatar.GetComponent<CoachStandPose>() == null) coachAvatar.AddComponent<CoachStandPose>(); // T자 자세 -> 서 있는 자세
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[TrainerAppear] 아바타 생성 중 오류 발생: {ex}");
+        }
 
         var look = Vector3.ProjectOnPlane(seat.position - pos, Vector3.up);
         if (look.sqrMagnitude > 0.001f) coachAvatar.transform.rotation = Quaternion.LookRotation(look.normalized, Vector3.up);
