@@ -35086,6 +35086,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FPSController
   cameraTransform: {fileID: 1353718895}
   moveSpeed: 5
+  sprintSpeed: 9
   jumpHeight: 1.2
   gravity: -20
   mouseSensitivity: 0.1
@@ -43264,12 +43265,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a1f5602e9f5cde4499a8253e01feb2d7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GeminiClient
-  model: gemini-3.8-flash
-  fallbackModel: gemini-3.5-flash-lite
+  model: gemini-3.1-flash-lite
+  fallbackModel: gemini-3.5-flash
   systemPrompt: "\uB108\uB294 \uC5B4\uB974\uC2E0\uC744 \uB3D5\uB294 \uD5EC\uC2A4\uC7A5 AI \uD2B8\uB808\uC774\uB108\uB2E4. \uB450\uC138 \uBB38\uC7A5\uC73C\uB85C \uC27D\uACE0 \uB2E4\uC815\uD558\uAC8C \uD55C\uAD6D\uC5B4\uB85C \uB2F5\uD55C\uB2E4."
   ttsModel: gemini-3.8-flash-tts
   ttsFallbackModel: gemini-3.8-flash-lite-tts
   voiceName: Kore
+  preferGoogleTts: 0
+  useGoogleTtsFallback: 1
 --- !u!4 &1267187828
 Transform:
   m_ObjectHideFlags: 0
@@ -66805,6 +66808,8 @@ MonoBehaviour:
   machineName: "\uB7AB\uD480\uB2E4\uC6B4"
   range: 5
   playerTag: Player
+  coachPrefab: {fileID: 0}
+  customGreetingText: 
 --- !u!114 &2051067939
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -66859,6 +66864,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TrainerVoice
   client: {fileID: 1267187827}
+  audioSource: {fileID: 0}
   volume: 1
 --- !u!82 &2051067942
 AudioSource:

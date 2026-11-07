@@ -7,6 +7,14 @@ public class TrainerVoice : MonoBehaviour
     [SerializeField] AudioSource audioSource;
     [SerializeField, Range(0f, 1f)] float volume = 1f;
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+    [System.Runtime.InteropServices.DllImport("__Internal")]
+    private static extern void WebSpeechSpeak(string text);
+
+    [System.Runtime.InteropServices.DllImport("__Internal")]
+    private static extern void WebSpeechStop();
+#endif
+
     int currentTicket = 0; // 최신 요청만 판별하기 위한 티켓 번호
 
     void Awake()
@@ -33,6 +41,12 @@ public class TrainerVoice : MonoBehaviour
         replyText = System.Text.RegularExpressions.Regex.Replace(replyText, @"[\(（][^)）]*[\)）]", "");
         replyText = System.Text.RegularExpressions.Regex.Replace(replyText, @"\s+", " ").Trim();
         if (replyText.Length == 0) return;
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // WebGL 빌드: 브라우저 내장 Web Speech API로 0초 지연 & CORS 없는 즉각 발화
+        WebSpeechSpeak(replyText);
+        return;
+#endif
 
         EnsureAudioSource();
 
@@ -103,6 +117,9 @@ public class TrainerVoice : MonoBehaviour
     // 재생 중인 음성 정지 (외부에서 호출 시)
     public void Stop()
     {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        WebSpeechStop();
+#endif
         currentTicket++; // 진행 중이던 비동기 콜백 무효화
         if (audioSource != null)
         {
