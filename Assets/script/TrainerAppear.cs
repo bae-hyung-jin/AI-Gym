@@ -14,18 +14,19 @@ public class TrainerAppear : MonoBehaviour
     [SerializeField] string machineName = "랫풀다운";
     [SerializeField] float range = 5f;
     [SerializeField] string playerTag = "Player";
+    [SerializeField] GameObject coachPrefab; // 플레이어가 운동할 때 옆에 서서 코칭할 '서 있는' AI 트레이너 아바타(프리팹/FBX)
 
     Transform player;
     GameObject panel;
     Text label;
     string cached;
     bool near, asking, busy;
-    GameObject coachAvatar; // 플레이어가 운동할 때 옆에 서 있는 코치 아바타(플레이어 모델 복제)
+    GameObject coachAvatar; // 운동 중 플레이어 옆에 서 있는 코치 아바타(coachPrefab에서 생성)
 
     // 플레이어가 직접 운동하는 동안에는 트레이너를 숨긴다
     public void SetBusy(bool value) { busy = value; Refresh(); }
 
-    // 플레이어가 직접 운동할 때: 기구에 앉은 시범용 트레이너는 숨기고, 서 있는 코치 아바타를 플레이어 옆에 세운다.
+    // 플레이어가 직접 운동할 때: 기구에 앉은 시범용 트레이너는 숨기고, coachPrefab 아바타를 플레이어 옆에 세운다.
     // 시범용 트레이너 모델은 '기구에 앉아 당기는 동작'이 통째로 구워져 있어 서 있게 할 수 없다.
     public void StartCoaching(Transform seat, Transform facing, Animator playerAnim)
     {
@@ -38,20 +39,19 @@ public class TrainerAppear : MonoBehaviour
         var pos = seat.position + right * 1.2f + f * 0.4f; // 3인칭 카메라(앞-왼쪽)에서 잘 보이는 플레이어 오른쪽 옆
         pos.y = playerAnim.transform.position.y;
 
-        coachAvatar = Instantiate(playerAnim.gameObject, pos, Quaternion.identity);
+        if (coachPrefab == null)
+        {
+            Debug.LogWarning("[TrainerAppear] Coach Prefab이 비어 있어 아바타 없이 자막/음성으로만 코칭합니다. 서 있는 AI 트레이너 아바타를 인스펙터의 Coach Prefab에 넣어 주세요.");
+            panel.SetActive(true);
+            return;
+        }
+
+        coachAvatar = Instantiate(coachPrefab, pos, Quaternion.identity);
         coachAvatar.name = "AI_Trainer_Coach";
-        foreach (var ev in coachAvatar.GetComponents<AnimationEventReceiver>()) Destroy(ev);
-        // 1인칭에서 가려 둔 머리카락·모자도 보이게 한다
-        foreach (var r in coachAvatar.GetComponentsInChildren<Renderer>(true))
-            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+        coachAvatar.SetActive(true);
 
         var look = Vector3.ProjectOnPlane(seat.position - pos, Vector3.up);
         if (look.sqrMagnitude > 0.001f) coachAvatar.transform.rotation = Quaternion.LookRotation(look.normalized, Vector3.up);
-
-        var an = coachAvatar.GetComponent<Animator>(); // 서 있는 기본 자세
-        an.applyRootMotion = false;
-        an.SetFloat("Speed", 0f); an.SetFloat("MotionSpeed", 1f);
-        an.SetBool("Grounded", true); an.SetBool("Jump", false); an.SetBool("FreeFall", false);
 
         panel.SetActive(true);
     }
