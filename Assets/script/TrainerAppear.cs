@@ -129,6 +129,8 @@ public class TrainerAppear : MonoBehaviour
         UiKit.RoundedPanel(panel.transform, new Vector2(6, 52), new Vector2(-546, 0), new Color(0.2f, 0.85f, 0.65f));
         label = UiKit.Label(panel.transform, font, "", 28, new Vector2(1050, 66), new Vector2(12, 0), TextAnchor.MiddleLeft);
         panel.SetActive(false);
+        if (trainer != null && machine != null && trainer.GetComponent<DemoTrainerFix>() == null)
+            trainer.AddComponent<DemoTrainerFix>().Init(machine.transform);
         trainer.SetActive(false);
         machine.enabled = false;
     }
