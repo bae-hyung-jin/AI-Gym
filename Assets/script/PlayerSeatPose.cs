@@ -168,18 +168,32 @@ public class PlayerSeatPose : MonoBehaviour
         // 팔 및 손: 팔꿈치가 귀 뒤로 꺾이지 않고 옆구리/아래로 내려오도록 동적 폴 타겟 계산
         if (handTargets != null && handTargets.Length >= 2)
         {
-            var rightIdx = Vector3.Dot(handTargets[0].position - hips.position, right) > Vector3.Dot(handTargets[1].position - hips.position, right) ? 0 : 1;
+            var barRoot = handTargets[0].parent;
+            Transform gL = null, gR = null;
+            if (barRoot != null)
+            {
+                gL = FindBone(barRoot, "Bar_Grip_L");
+                gR = FindBone(barRoot, "Bar_Grip_R");
+            }
+            var t0 = gL != null ? gL : handTargets[0];
+            var t1 = gR != null ? gR : handTargets[1];
+            var useExactFoam = (gL != null && gR != null);
+
+            var rightIdx = Vector3.Dot(t0.position - hips.position, right) > Vector3.Dot(t1.position - hips.position, right) ? 0 : 1;
             var shoulderCenter = hips.position + Vector3.up * 0.45f;
             for (var i = 0; i < 2; i++)
             {
                 var k = i == 1 ? rightIdx : 1 - rightIdx;
+                var targetTr = (k == 0 ? t0 : t1);
                 float sideSign = (i == 0 ? -1f : 1f);
                 var dynamicElbowPole = shoulderCenter
                     + right * (0.58f * sideSign)
                     + Vector3.up * Mathf.Lerp(0.10f, -0.45f, currentPull)
                     + f * 0.08f;
 
-                var gripPos = handTargets[k].position + Vector3.up * 0.056f - f * 0.058f;
+                var gripPos = useExactFoam
+                    ? targetTr.position + Vector3.up * 0.048f - f * 0.036f
+                    : targetTr.position + Vector3.up * 0.145f - f * 0.065f;
                 TrainerIK.Solve(upArm[i], loArm[i], hand[i], gripPos, dynamicElbowPole);
                 Grip(i, f);
             }

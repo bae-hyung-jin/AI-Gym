@@ -140,8 +140,8 @@ public class TrainerAppear : MonoBehaviour
         UiKit.RoundedPanel(panel.transform, new Vector2(6, 52), new Vector2(-546, 0), new Color(0.2f, 0.85f, 0.65f));
         label = UiKit.Label(panel.transform, font, "", 28, new Vector2(1050, 66), new Vector2(12, 0), TextAnchor.MiddleLeft);
         panel.SetActive(false);
-        // 새 블렌더 아바타(TrainerHuman)가 있으면 구형 Latpulldown_ani 대신 교체해 깔끔한 어깨/그립으로 시범을 보인다
-        var modernDemo = Resources.Load<GameObject>("TrainerHuman");
+        // 새 블렌더 시범 전용 아바타(TrainerHuman_Demo: 좌석·허벅지 패드·바 그립 포함 150프레임 애니메이션) 로드
+        var modernDemo = Resources.Load<GameObject>("TrainerHuman_Demo") ?? Resources.Load<GameObject>("TrainerHuman");
         if (modernDemo != null && machine != null)
         {
             if (trainer != null) trainer.SetActive(false);
@@ -150,11 +150,11 @@ public class TrainerAppear : MonoBehaviour
                 if (tr.name == "TrainerSeat") { seat = tr; break; }
             var f = Vector3.ProjectOnPlane(machine.transform.forward, Vector3.up).normalized;
             var pos = seat != null ? seat.position : machine.transform.position;
-            pos.y = 0.04f;
+            pos.y = machine.transform.position.y; // Blender Z=0 == 기구 바닥 높이(0.004)
             var newTrainer = Instantiate(modernDemo, pos, Quaternion.LookRotation(f, Vector3.up));
             newTrainer.name = "TrainerHuman_Demo";
             var anim = newTrainer.GetComponentInChildren<Animator>();
-            if (anim != null) { anim.SetFloat("Speed", 0f); anim.SetBool("Grounded", true); }
+            if (anim != null && anim.isHuman) { anim.SetFloat("Speed", 0f); anim.SetBool("Grounded", true); }
             newTrainer.AddComponent<DemoTrainerFix>().Init(machine.transform, seat);
             trainer = newTrainer;
             trainerAnim = anim;
@@ -194,7 +194,13 @@ public class TrainerAppear : MonoBehaviour
     void Appear()
     {
         trainer.SetActive(true);
-        if (trainerAnim != null) { trainerAnim.Rebind(); trainerAnim.Update(0f); }
+        if (trainerAnim != null)
+        {
+            trainerAnim.Rebind();
+            if (trainerAnim.HasState(0, Animator.StringToHash("LatPulldown_Demo")))
+                trainerAnim.Play("LatPulldown_Demo", 0, 0f);
+            trainerAnim.Update(0f);
+        }
         machine.enabled = true;
         machine.speed = 1f; // 직접 운동할 때 0으로 멈춰 둔 것을 되돌린다
         machine.Play("Pull", 0, 0f);
