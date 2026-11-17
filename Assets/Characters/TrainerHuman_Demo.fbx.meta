@@ -5,6 +5,61 @@ ModelImporter:
   internalIDToNameTable: []
   externalObjects:
   - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Ch38_body
+    second: {fileID: 2100000, guid: 75bbae36666623747b2aefff2ca5b609, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Ch38_hair
+    second: {fileID: 2100000, guid: 95cb850d269419249a5dad01d58c5060, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Trainer_Compression
+    second: {fileID: 2100000, guid: cd307a5ca1240b040aaf42950a926d29, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Trainer_Gold
+    second: {fileID: 2100000, guid: e51a22350221fdb43a3a7f9269a186a7, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Trainer_Headset
+    second: {fileID: 2100000, guid: af78816ac5ac32040904c874e386ce1c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Trainer_Mint
+    second: {fileID: 2100000, guid: 7bbe3bbe7e41e144ebecc8cf57e7d243, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Trainer_Pants
+    second: {fileID: 2100000, guid: 912a1e347bbec4744a21a74746fcf2e0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Trainer_Shoes
+    second: {fileID: 2100000, guid: eb49e1b7c333978419998380df80f309, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Trainer_Socks
+    second: {fileID: 2100000, guid: ed6b9ef329c76154cb81b7df68f56f24, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Trainer_Top
+    second: {fileID: 2100000, guid: 4d56c1354d57c1242a34a80cebe94ae1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Trainer_White
+    second: {fileID: 2100000, guid: dbcd4b6059d090142b2fe613444bbfc0, type: 2}
+  - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: Ch38_1001_Diffuse
@@ -38,7 +93,7 @@ ModelImporter:
     materialImportMode: 1
     materialName: 0
     materialSearch: 1
-    materialLocation: 1
+    materialLocation: 0
     searchTexturesGlobally: 0
   animations:
     legacyGenerateAnimations: 4

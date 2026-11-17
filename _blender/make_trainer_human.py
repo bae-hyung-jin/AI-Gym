@@ -128,14 +128,16 @@ def make_mat(name, rgb, rough=.58, metallic=0.0):
     return m
 
 MAT = {
-    "Compression": make_mat("Trainer_Compression", (0.045, 0.052, 0.068), .60),
-    "Top":         make_mat("Trainer_Top", (0.016, 0.018, 0.024), .52),
-    "Pants":       make_mat("Trainer_Pants", (0.032, 0.035, 0.045), .68),
-    "Socks":       make_mat("Trainer_Socks", (0.018, 0.020, 0.026), .75),
-    "Gold":        make_mat("Trainer_Gold", (0.94, 0.76, 0.20), .35, .15),
-    "Mint":        make_mat("Trainer_Mint", (0.18, 0.85, 0.62), .40),
-    "White":       make_mat("Trainer_White", (0.94, 0.94, 0.96), .45),
-    "Metal":       make_mat("Trainer_Headset", (0.08, 0.08, 0.10), .30, .70),
+    "Compression": make_mat("Trainer_Compression", (0.34, 0.38, 0.44), .88),
+    "Top":         make_mat("Trainer_Top", (0.08, 0.16, 0.28), .86),
+    "Pants":       make_mat("Trainer_Pants", (0.11, 0.12, 0.16), .90),
+    "Socks":       make_mat("Trainer_Socks", (0.08, 0.11, 0.16), .90),
+    "Shoes":       make_mat("Trainer_Shoes", (0.86, 0.89, 0.92), .78),
+    "Hair":        make_mat("Trainer_SolidHair", (0.045, 0.035, 0.030), .85),
+    "Gold":        make_mat("Trainer_Gold", (0.96, 0.78, 0.22), .35, .15),
+    "Mint":        make_mat("Trainer_Mint", (0.16, 0.85, 0.65), .45),
+    "White":       make_mat("Trainer_White", (0.95, 0.96, 0.98), .45),
+    "Metal":       make_mat("Trainer_Headset", (0.10, 0.11, 0.14), .30, .70),
 }
 
 # ---------- helpers ----------
@@ -218,22 +220,30 @@ shirt.data.materials.clear(); shirt.data.materials.append(MAT["Compression"])
 for p_ in shirt.data.polygons:
     p_.use_smooth = True
 
-# Build fitted black vest over torso with razor-clean bisect_plane cuts at armholes
+# Build fitted navy vest over torso with razor-clean bisect_plane cuts at armholes
 vest_bm = world_bm(shirt)
 for v in vest_bm.verts:
-    v.co += v.normal * 0.008
+    v.co += v.normal * 0.011
 bmesh.ops.bisect_plane(
     vest_bm, geom=vest_bm.verts[:] + vest_bm.edges[:] + vest_bm.faces[:],
     plane_co=(cut_x, 0, 0), plane_no=(1, 0, 0), clear_outer=True)
 bmesh.ops.bisect_plane(
     vest_bm, geom=vest_bm.verts[:] + vest_bm.edges[:] + vest_bm.faces[:],
     plane_co=(-cut_x, 0, 0), plane_no=(-1, 0, 0), clear_outer=True)
+interior_v = [v for v in vest_bm.verts if not v.is_boundary and v.co.z < bone_pos("Neck").z - 0.08]
+for _ in range(3):
+    bmesh.ops.smooth_vert(vest_bm, verts=interior_v, factor=0.45, use_axis_x=True, use_axis_y=True, use_axis_z=True)
+shirt_bvh = BVHTree.FromBMesh(world_bm(shirt))
+for v in vest_bm.verts:
+    hit = shirt_bvh.find_nearest(v.co)
+    if hit[0] is not None and hit[2] < 0.005:
+        v.co = hit[0] + hit[1] * 0.006
 vest_bm.normal_update()
 top_bvh = BVHTree.FromBMesh(vest_bm)
 hem_z = min(v.co.z for v in vest_bm.verts)
 add_child("TrainerVest", vest_bm, MAT["Top"], shirt)
 
-# ---------- 2. charcoal gym joggers & dark socks ----------
+# ---------- 2. charcoal gym joggers, dark socks & crisp athletic sneakers ----------
 shorts = M["Shorts"]
 shorts.data.materials.clear(); shorts.data.materials.append(MAT["Pants"])
 for p_ in shorts.data.polygons:
@@ -246,6 +256,9 @@ short_min = min((shorts.matrix_world @ v.co).z for v in shorts.data.vertices)
 pants_lower = extract(body_bm, lambda c: knee_z - .18 <= c.z <= short_min + .05 and abs(c.x) < .30, .016)
 add_child("TrainerPantsLower", pants_lower, MAT["Pants"], body)
 M["Socks"].data.materials.clear(); M["Socks"].data.materials.append(MAT["Socks"])
+M["Shoes"].data.materials.clear(); M["Shoes"].data.materials.append(MAT["Shoes"])
+for p_ in M["Shoes"].data.polygons:
+    p_.use_smooth = True
 
 # ---------- 3. gold & mint athletic chest details ----------
 neck = bone_pos("Neck"); s2 = bone_pos("Spine2")
@@ -293,7 +306,75 @@ cz = s2.z + .01
 text_part("LogoAI", "AI", -.095, cz + .015, .048, MAT["Gold"])
 text_part("LogoTrainer", "TRAINER", -.095, cz - .030, .022, MAT["White"])
 
-# ---------- 4. sleek wireless coach headset snapped flush onto right ear ----------
+# ---------- 4. sleek sculpted athletic short hair (clean curved hairline, zero jagged stairs or alpha spots) ----------
+def build_clean_hair():
+    if hair is not None and hair.name in bpy.data.objects:
+        bpy.data.objects.remove(hair, do_unlink=True)
+
+    # Start from a clean subdivided icosphere wrapped tightly onto the upper head BVH with curved stylish fringe!
+    hair_bm = bmesh.new()
+    bmesh.ops.create_icosphere(hair_bm, subdivisions=4, radius=0.14)
+    head_center = Vector((0.0, -0.015, 1.675))
+    bmesh.ops.transform(hair_bm, matrix=Matrix.Translation(head_center), verts=hair_bm.verts)
+
+    # Smooth curved hairline height: lower at nape/sides, clean curved rounded forehead arch in front (zero stepping!)
+    def hairline_z(p):
+        ang = math.degrees(math.atan2(p.x, -(p.y + 0.015)))  # 0=front, +-90=ear, +-180=back
+        a_abs = abs(ang)
+        if a_abs < 50.0:
+            # Stylish slight diagonal side-swept fringe on forehead
+            sweep = 0.008 * math.sin(math.radians(ang * 2.2))
+            t = a_abs / 50.0
+            return 1.700 + sweep - 0.028 * (t * t)
+        if a_abs < 95.0:
+            t = (a_abs - 50.0) / 45.0
+            return 1.672 - 0.044 * t
+        t = (a_abs - 95.0) / 85.0
+        return 1.628 - 0.062 * t
+
+    # Project upper dome verts cleanly onto head surface + sculpted athletic hair volume
+    keep_faces = []
+    for v in hair_bm.verts:
+        # Ray/nearest onto Ch38_Body scalp above neck
+        ray_dir = (v.co - head_center).normalized()
+        hit = body_bvh.ray_cast(head_center + ray_dir * 0.25, -ray_dir)
+        surf = hit[0] if hit[0] is not None else body_bvh.find_nearest(v.co)[0]
+        if surf is None:
+            continue
+        hz = hairline_z(surf)
+        above = surf.z - hz
+        if above < -0.012:
+            v.co = surf - ray_dir * 0.003
+        else:
+            is_top = max(0.0, min(1.0, (surf.z - 1.682) / 0.055))
+            taper = max(0.0, min(1.0, (above + 0.005) / 0.025))
+            wave = 0.0022 * math.sin(surf.x * 60.0 + surf.y * 28.0) * is_top
+            thick = 0.002 + 0.006 * taper + 0.016 * is_top + wave
+            p_out = surf + ray_dir * thick
+            if is_top > 0.1 and surf.y < 0.0:
+                p_out.z += 0.007 * is_top
+                p_out.y -= 0.005 * is_top
+            v.co = p_out
+
+    # Trim clean faces below curved hairline using bisect/threshold cleanly & smooth boundary
+    del_faces = []
+    for f in hair_bm.faces:
+        if min(v.co.z - hairline_z(v.co) for v in f.verts) < -0.004:
+            del_faces.append(f)
+    bmesh.ops.delete(hair_bm, geom=del_faces, context='FACES')
+    # Smooth hairline vertices and tuck boundary slightly into scalp so zero seam shows
+    for _ in range(2):
+        bmesh.ops.smooth_vert(hair_bm, verts=hair_bm.verts[:], factor=0.35, use_axis_x=True, use_axis_y=True, use_axis_z=True)
+    for v in hair_bm.verts:
+        if v.is_boundary:
+            d = (v.co - head_center).normalized()
+            v.co -= d * 0.002
+    hair_bm.normal_update()
+    return add_rigid_to_bone("TrainerSolidHair", hair_bm, MAT["Hair"], body, "Head")
+
+build_clean_hair()
+
+# ---------- 5. sleek wireless coach headset snapped flush onto right ear ----------
 head_pos = bone_pos("Head")
 ear_probe = Vector((-0.14, head_pos.y + 0.01, head_pos.z + 0.075))
 ear_hit = body_bvh.find_nearest(ear_probe)
