@@ -32,6 +32,8 @@ public class TrainerAppear : MonoBehaviour
 
     void EnsureCoachPrefab()
     {
+        var modern = Resources.Load<GameObject>("TrainerHuman");
+        if (modern != null) { coachPrefab = modern; return; }
         if (coachPrefab != null) return;
         coachPrefab = Resources.Load<GameObject>("AI_Trainer");
 #if UNITY_EDITOR
@@ -69,8 +71,17 @@ public class TrainerAppear : MonoBehaviour
                 {
                     coachAvatar.name = "AI_Trainer_Coach";
                     coachAvatar.SetActive(true);
-                    if (coachAvatar.GetComponent<CoachStandPose>() == null)
-                        coachAvatar.AddComponent<CoachStandPose>(); // T자 자세 -> 서 있는 자세
+                    var ca = coachAvatar.GetComponentInChildren<Animator>();
+                    if (ca == null || !ca.isHuman || ca.runtimeAnimatorController == null)
+                    {
+                        if (coachAvatar.GetComponent<CoachStandPose>() == null)
+                            coachAvatar.AddComponent<CoachStandPose>(); // 구형 T자 자세 -> 서 있는 자세
+                    }
+                    else
+                    {
+                        ca.SetFloat("Speed", 0f);
+                        ca.SetBool("Grounded", true);
+                    }
                 }
             }
             catch (System.Exception ex)
@@ -129,9 +140,30 @@ public class TrainerAppear : MonoBehaviour
         UiKit.RoundedPanel(panel.transform, new Vector2(6, 52), new Vector2(-546, 0), new Color(0.2f, 0.85f, 0.65f));
         label = UiKit.Label(panel.transform, font, "", 28, new Vector2(1050, 66), new Vector2(12, 0), TextAnchor.MiddleLeft);
         panel.SetActive(false);
-        if (trainer != null && machine != null && trainer.GetComponent<DemoTrainerFix>() == null)
-            trainer.AddComponent<DemoTrainerFix>().Init(machine.transform);
-        trainer.SetActive(false);
+        // 새 블렌더 아바타(TrainerHuman)가 있으면 구형 Latpulldown_ani 대신 교체해 깔끔한 어깨/그립으로 시범을 보인다
+        var modernDemo = Resources.Load<GameObject>("TrainerHuman");
+        if (modernDemo != null && machine != null)
+        {
+            if (trainer != null) trainer.SetActive(false);
+            Transform seat = null;
+            foreach (var tr in machine.GetComponentsInChildren<Transform>(true))
+                if (tr.name == "TrainerSeat") { seat = tr; break; }
+            var f = Vector3.ProjectOnPlane(machine.transform.forward, Vector3.up).normalized;
+            var pos = seat != null ? seat.position : machine.transform.position;
+            pos.y = 0.04f;
+            var newTrainer = Instantiate(modernDemo, pos, Quaternion.LookRotation(f, Vector3.up));
+            newTrainer.name = "TrainerHuman_Demo";
+            var anim = newTrainer.GetComponentInChildren<Animator>();
+            if (anim != null) { anim.SetFloat("Speed", 0f); anim.SetBool("Grounded", true); }
+            newTrainer.AddComponent<DemoTrainerFix>().Init(machine.transform, seat);
+            trainer = newTrainer;
+            trainerAnim = anim;
+        }
+        else if (trainer != null && machine != null && trainer.GetComponent<DemoTrainerFix>() == null)
+        {
+            trainer.AddComponent<DemoTrainerFix>().Init(machine.transform, null);
+        }
+        if (trainer != null) trainer.SetActive(false);
         machine.enabled = false;
     }
 

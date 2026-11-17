@@ -1,16 +1,20 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// 시범용 AI 트레이너(Latpulldown_ani)의 베이크된 애니메이션 결함(귀까지 솟은 어깨, 뒤틀린 손목/공중에 뜬 손)을
-// 매 프레임 Animator 평가 직후(LateUpdate) 해부학적으로 교정하고 실제 기구 바(HandTarget)에 손을 밀착시킨다.
+// 시범용 AI 트레이너(TrainerHuman / Mixamo Humanoid)를 기구 좌석에 앉히고
+// 매 프레임 기구 애니메이션(HandTarget_L/R)에 맞춰 어깨·상체·양팔·15개 손가락 관절을 자연스럽게 동기화한다.
 public class DemoTrainerFix : MonoBehaviour
 {
-    Transform hips, spine, chest, head;
+    Transform hips, spine, chest, head, seatPoint, facing, barSlide;
     Quaternion baseSpineLocal, baseChestLocal, baseHeadLocal;
+    readonly Quaternion[] baseShoulderLocal = new Quaternion[2];
     readonly Transform[] shoulder = new Transform[2];
     readonly Transform[] upArm = new Transform[2], loArm = new Transform[2], hand = new Transform[2];
+    readonly Transform[] upLeg = new Transform[2], loLeg = new Transform[2], foot = new Transform[2];
+    readonly Quaternion[] footRel = new Quaternion[2];
+    float footHeight;
+    float lastAppliedBarY = float.NaN;
     readonly Transform[] handTargets = new Transform[2];
-    Transform facing;
 
     readonly Quaternion[] handLocalToGrip = new Quaternion[2];
     readonly bool[] handGripReady = new bool[2];
@@ -21,31 +25,59 @@ public class DemoTrainerFix : MonoBehaviour
     static readonly string[] fingerNames = { "Index", "Middle", "Ring", "Pinky", "Little", "Thumb" };
     bool ready;
 
-    public void Init(Transform machineRoot)
+    public void Init(Transform machineRoot, Transform seat)
     {
         if (machineRoot == null) return;
         facing = machineRoot;
+        seatPoint = seat != null ? seat : (FindBone(machineRoot, "TrainerSeat") ?? machineRoot);
+        barSlide = FindBone(machineRoot, "Bar_Slide");
         handTargets[0] = FindBone(machineRoot, "HandTarget_L");
         handTargets[1] = FindBone(machineRoot, "HandTarget_R");
 
-        hips = FindBone(transform, "Hips");
-        spine = FindBone(transform, "Spine");
-        chest = FindBone(transform, "Chest") ?? spine;
-        head = FindBone(transform, "Head");
+        var anim = GetComponentInChildren<Animator>();
+        if (anim != null && anim.isHuman)
+        {
+            hips = anim.GetBoneTransform(HumanBodyBones.Hips);
+            spine = anim.GetBoneTransform(HumanBodyBones.Spine);
+            chest = anim.GetBoneTransform(HumanBodyBones.Chest) ?? spine;
+            head = anim.GetBoneTransform(HumanBodyBones.Head);
 
+            shoulder[0] = anim.GetBoneTransform(HumanBodyBones.LeftShoulder);
+            shoulder[1] = anim.GetBoneTransform(HumanBodyBones.RightShoulder);
+            upArm[0] = anim.GetBoneTransform(HumanBodyBones.LeftUpperArm); loArm[0] = anim.GetBoneTransform(HumanBodyBones.LeftLowerArm); hand[0] = anim.GetBoneTransform(HumanBodyBones.LeftHand);
+            upArm[1] = anim.GetBoneTransform(HumanBodyBones.RightUpperArm); loArm[1] = anim.GetBoneTransform(HumanBodyBones.RightLowerArm); hand[1] = anim.GetBoneTransform(HumanBodyBones.RightHand);
+            upLeg[0] = anim.GetBoneTransform(HumanBodyBones.LeftUpperLeg); loLeg[0] = anim.GetBoneTransform(HumanBodyBones.LeftLowerLeg); foot[0] = anim.GetBoneTransform(HumanBodyBones.LeftFoot);
+            upLeg[1] = anim.GetBoneTransform(HumanBodyBones.RightUpperLeg); loLeg[1] = anim.GetBoneTransform(HumanBodyBones.RightLowerLeg); foot[1] = anim.GetBoneTransform(HumanBodyBones.RightFoot);
+        }
+        else
+        {
+            hips = FindBone(transform, "Hips");
+            spine = FindBone(transform, "Spine");
+            chest = FindBone(transform, "Chest") ?? spine;
+            head = FindBone(transform, "Head");
+            string[] s = { "Left", "Right" };
+            for (int i = 0; i < 2; i++)
+            {
+                shoulder[i] = FindBone(transform, s[i] + "Shoulder");
+                upArm[i] = FindBone(transform, s[i] + "UpperArm");
+                loArm[i] = FindBone(transform, s[i] + "LowerArm");
+                hand[i] = FindBone(transform, s[i] + "Hand");
+            }
+        }
+
+        for (int i = 0; i < 2; i++)
+        {
+            if (foot[i] != null) footRel[i] = Quaternion.Inverse(transform.rotation) * foot[i].rotation;
+            if (shoulder[i] != null) baseShoulderLocal[i] = shoulder[i].localRotation;
+        }
         if (spine != null) baseSpineLocal = spine.localRotation;
         if (chest != null) baseChestLocal = chest.localRotation;
         if (head != null) baseHeadLocal = head.localRotation;
+        if (foot[0] != null) footHeight = foot[0].position.y - transform.position.y;
 
         string[] side = { "Left", "Right" };
-        for (int i = 0; i < 2; i++)
-        {
-            shoulder[i] = FindBone(transform, side[i] + "Shoulder");
-            upArm[i] = FindBone(transform, side[i] + "UpperArm");
-            loArm[i] = FindBone(transform, side[i] + "LowerArm");
-            hand[i] = FindBone(transform, side[i] + "Hand");
-            CacheHand(i, side[i]);
-        }
+        for (int i = 0; i < 2; i++) CacheHand(i, side[i]);
+
         ready = (hips != null && upArm[0] != null && upArm[1] != null && handTargets[0] != null && handTargets[1] != null);
     }
 
@@ -96,7 +128,7 @@ public class DemoTrainerFix : MonoBehaviour
                 list.Add(b);
                 rest.Add(b.localRotation);
                 axis.Add(Quaternion.Inverse(b.rotation) * worldAxis.normalized);
-                curl.Add(fn == "Thumb" ? (j == 1 ? 15f : 25f) : (j == 1 ? 24f : j == 2 ? 32f : 20f));
+                curl.Add(fn == "Thumb" ? (j == 1 ? 32f : 44f) : (j == 1 ? 56f : j == 2 ? 68f : 52f));
             }
         }
         finger[i] = list.ToArray();
@@ -111,15 +143,14 @@ public class DemoTrainerFix : MonoBehaviour
         if (handGripReady[i])
         {
             float sideSign = (i == 0 ? -1f : 1f);
-            var targetForward = (forward * 0.82f + Vector3.up * 0.57f).normalized;
-            var targetPalm = Vector3.ProjectOnPlane((Vector3.down * 0.85f - forward * 0.52f), targetForward).normalized;
-            // 랫풀다운 바 양쪽 끝의 완만한 기울기에 맞춰 살짝 안쪽으로 정렬
-            var barTilt = Quaternion.AngleAxis(sideSign * 10f, forward);
+            // 진짜 오버핸드 그립: 손등이 위/내 쪽을 향하고, 손가락이 바 위를 넘어 앞(+forward)·아래로 감싸 쥠
+            var targetForward = (forward * 0.84f + Vector3.down * 0.54f).normalized;
+            var targetPalm = Vector3.ProjectOnPlane((Vector3.down * 0.86f - forward * 0.51f), targetForward).normalized;
+            var barTilt = Quaternion.AngleAxis(sideSign * 22f, forward);
             var targetFrame = barTilt * Quaternion.LookRotation(targetForward, targetPalm);
             hand[i].rotation = targetFrame * Quaternion.Inverse(handLocalToGrip[i]);
         }
 
-        // 초기 로컬 회전(fingerRest) 기준으로 적용해 Animator 정지 시에도 회전 누적 방지
         if (finger[i] != null)
         {
             for (int j = 0; j < finger[i].Length; j++)
@@ -134,35 +165,55 @@ public class DemoTrainerFix : MonoBehaviour
     {
         if (!ready || facing == null) return;
 
+        // 기구 바가 너무 높아 팔이 닿지 않는 것을 방지하기 위해 시범 중 기본 높이를 1회/프레임당 정확히 -0.11m 보정(누적 방지)
+        if (barSlide != null && !Mathf.Approximately(barSlide.position.y, lastAppliedBarY))
+        {
+            barSlide.position += Vector3.down * 0.11f;
+            lastAppliedBarY = barSlide.position.y;
+        }
+
         var f = Vector3.ProjectOnPlane(facing.forward, Vector3.up).normalized;
         var right = Vector3.Cross(Vector3.up, f);
 
-        // 현재 바 높이를 기준으로 당김 진행률(0~1) 추정 (상단 ~1.80m -> 하단 ~1.41m)
-        float barY = (handTargets[0].position.y + handTargets[1].position.y) * 0.5f;
-        float pull = Mathf.Clamp01(Mathf.InverseLerp(1.80f, 1.41f, barY));
+        // 골반 좌석 안착
+        hips.position = seatPoint.position + Vector3.up * 0.08f - f * 0.05f;
+        hips.rotation = Quaternion.LookRotation(f, Vector3.up);
 
-        // 1. 흉추 신전 (초기 로컬 회전 기준으로 매 프레임 적용해 회전 누적 원천 차단)
+        float barY = (handTargets[0].position.y + handTargets[1].position.y) * 0.5f;
+        float pull = Mathf.Clamp01(Mathf.InverseLerp(1.69f, 1.30f, barY));
+
+        // 1. 흉추 신전 및 시선 유지 (초기 로컬 회전에서 출발해 누적 방지)
         if (spine != null) spine.localRotation = baseSpineLocal;
         if (chest != null && chest != spine) chest.localRotation = baseChestLocal;
         if (head != null) head.localRotation = baseHeadLocal;
-
-        float leanAngle = Mathf.Lerp(2f, 14f, pull);
+        float leanAngle = Mathf.Lerp(4f, 16f, pull);
         if (spine != null) spine.rotation = Quaternion.AngleAxis(leanAngle * 0.45f, -right) * spine.rotation;
         if (chest != null && chest != spine) chest.rotation = Quaternion.AngleAxis(leanAngle * 0.55f, -right) * chest.rotation;
-        if (head != null) head.rotation = Quaternion.AngleAxis(leanAngle * 0.65f, right) * head.rotation;
+        if (head != null) head.rotation = Quaternion.AngleAxis(leanAngle * 0.50f, right) * head.rotation;
 
-        // 2. 귀까지 솟구친 쇄골/어깨(44~55도 으쓱거림)를 해부학적으로 편안한 위치로 내림
+        // 2. 다리 착석 포즈
+        for (int i = 0; i < 2; i++)
+        {
+            if (upLeg[i] == null || loLeg[i] == null || foot[i] == null) continue;
+            var footPos = hips.position + f * 0.45f + right * (i == 0 ? -0.12f : 0.12f);
+            footPos.y = transform.position.y + footHeight;
+            TrainerIK.Solve(upLeg[i], loLeg[i], foot[i], footPos, hips.position + f + Vector3.up * 0.6f);
+            foot[i].rotation = transform.rotation * footRel[i];
+        }
+
+        // 3. 쇄골/어깨의 과도한 으쓱거림 방지
         for (int i = 0; i < 2; i++)
         {
             if (shoulder[i] == null || upArm[i] == null) continue;
+            shoulder[i].localRotation = baseShoulderLocal[i];
             float sideSign = (i == 0 ? -1f : 1f);
-            var desiredClavDir = (right * sideSign + Vector3.up * Mathf.Lerp(0.24f, -0.05f, pull)).normalized;
+            var desiredClavDir = (right * sideSign + Vector3.up * Mathf.Lerp(0.18f, -0.04f, pull)).normalized;
             var curClavDir = (upArm[i].position - shoulder[i].position).normalized;
             if (curClavDir.sqrMagnitude > 1e-5f)
                 shoulder[i].rotation = Quaternion.FromToRotation(curClavDir, desiredClavDir) * shoulder[i].rotation;
         }
 
-        // 3. 두 손을 실제 바 그립 위치에 정확히 밀착시키고 팔꿈치는 옆구리/아래 방향으로 유도
+        // 4. 두 손을 바 그립 위치에 정확히 밀착
         var rightIdx = Vector3.Dot(handTargets[0].position - hips.position, right) > Vector3.Dot(handTargets[1].position - hips.position, right) ? 0 : 1;
         var shoulderCenter = (upArm[0].position + upArm[1].position) * 0.5f;
         for (int i = 0; i < 2; i++)
@@ -170,11 +221,11 @@ public class DemoTrainerFix : MonoBehaviour
             int k = i == 1 ? rightIdx : 1 - rightIdx;
             float sideSign = (i == 0 ? -1f : 1f);
             var dynamicElbowPole = shoulderCenter
-                + right * (0.60f * sideSign)
-                + Vector3.up * Mathf.Lerp(0.05f, -0.50f, pull)
+                + right * (0.58f * sideSign)
+                + Vector3.up * Mathf.Lerp(0.10f, -0.45f, pull)
                 + f * 0.08f;
 
-            var gripPos = handTargets[k].position + Vector3.up * 0.045f + f * 0.015f;
+            var gripPos = handTargets[k].position + Vector3.up * 0.056f - f * 0.058f;
             TrainerIK.Solve(upArm[i], loArm[i], hand[i], gripPos, dynamicElbowPole);
             Grip(i, f);
         }

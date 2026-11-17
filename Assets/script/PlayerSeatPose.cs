@@ -83,7 +83,7 @@ public class PlayerSeatPose : MonoBehaviour
                 list.Add(b);
                 rest.Add(b.localRotation);
                 axis.Add(Quaternion.Inverse(b.rotation) * worldAxis.normalized);
-                curl.Add(fn == "Thumb" ? (j == 1 ? 40f : 55f) : (j == 1 ? 82f : j == 2 ? 95f : 75f));
+                curl.Add(fn == "Thumb" ? (j == 1 ? 32f : 44f) : (j == 1 ? 56f : j == 2 ? 68f : 52f));
             }
         }
         finger[i] = list.ToArray();
@@ -97,10 +97,12 @@ public class PlayerSeatPose : MonoBehaviour
         if (hand[i] == null) return;
         if (handGripReady[i])
         {
-            // 오버핸드 그립: 손바닥이 바의 위·앞쪽을 덮고 손가락 끝이 바 아래로 감싸 쥠
-            var targetForward = (forward * 0.82f + Vector3.up * 0.57f).normalized;
-            var targetPalm = Vector3.ProjectOnPlane((Vector3.down * 0.85f - forward * 0.52f), targetForward).normalized;
-            var targetFrame = Quaternion.LookRotation(targetForward, targetPalm);
+            float sideSign = (i == 0 ? -1f : 1f);
+            // 진짜 오버핸드 그립: 손등이 위/내 쪽을 향하고, 손가락이 바 위를 넘어 앞(+forward)·아래로 감싸 쥠
+            var targetForward = (forward * 0.84f + Vector3.down * 0.54f).normalized;
+            var targetPalm = Vector3.ProjectOnPlane((Vector3.down * 0.86f - forward * 0.51f), targetForward).normalized;
+            var barTilt = Quaternion.AngleAxis(sideSign * 22f, forward);
+            var targetFrame = barTilt * Quaternion.LookRotation(targetForward, targetPalm);
             hand[i].rotation = targetFrame * Quaternion.Inverse(handLocalToGrip[i]);
         }
 
@@ -177,7 +179,7 @@ public class PlayerSeatPose : MonoBehaviour
                     + Vector3.up * Mathf.Lerp(0.10f, -0.45f, currentPull)
                     + f * 0.08f;
 
-                var gripPos = handTargets[k].position + Vector3.up * 0.065f - f * 0.02f;
+                var gripPos = handTargets[k].position + Vector3.up * 0.056f - f * 0.058f;
                 TrainerIK.Solve(upArm[i], loArm[i], hand[i], gripPos, dynamicElbowPole);
                 Grip(i, f);
             }
