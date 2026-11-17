@@ -183,47 +183,41 @@ def hand_rest_info(side):
 
 HAND_INFO = {"Left": hand_rest_info("Left"), "Right": hand_rest_info("Right")}
 
-def curl_fingers(side, wrist_world_pos, target_fd, target_palm, slope_dir):
-    """Curl all 5 fingers cleanly around a 0.032m*S handle cylinder whose axis is slope_dir."""
-    # Axis perpendicular to cylinder and finger direction:
+def curl_fingers(side, sgn, grip_c, bar_perp_fwd, bar_perp_up, target_fd, target_palm, slope_dir):
+    """Curl all 4 fingers smoothly around the outside of the 0.032m*S bar cylinder, and wrap the thumb cleanly underneath."""
+    # Wait: fingers bend from target_fd around the bar cross-section axis = target_fd.cross(target_palm)
     for fn in ("Index", "Middle", "Ring", "Pinky"):
-        curls = (60.0, 74.0, 58.0)
+        curls = (52.0, 62.0, 52.0) if fn == "Pinky" else (56.0, 66.0, 56.0)
         for j, deg in enumerate(curls, start=1):
             b = pb(f"{side}Hand{fn}{j}")
             b.matrix_basis = Matrix.Identity(4)
             bpy.context.view_layer.update()
             M0 = (arm.matrix_world @ b.matrix).to_3x3()
-            # Curled fingers rotate around -slope_dir (for Left) or +slope_dir (for Right) so tips curl into target_palm!
-            # Universal curl axis = finger_y.cross(target_palm)
             f_dir = M0.col[1].normalized()
             curl_axis = f_dir.cross(target_palm).normalized()
             if curl_axis.length < 1e-5:
                 curl_axis = slope_dir
-            # Cumulative angle ensures smooth arc even without rest alignment ambiguity
             R_rot = Quaternion(curl_axis, math.radians(deg)).to_matrix()
             set_world_rot(b, R_rot @ M0)
 
-    # Thumb curls slightly opposite/across under the bar handle
-    thumb_curls = (28.0, 42.0, 38.0)
-    for j, deg in enumerate(thumb_curls, start=1):
+    # Thumb wraps cleanly BELOW & around the underside of the foam cylinder (never clipping through cylinder core)
+    med = -slope_dir if side == "Left" else slope_dir
+    thumb_dirs = [
+        (bar_perp_fwd * 0.30 - bar_perp_up * 0.88 + med * 0.36).normalized(),
+        (bar_perp_fwd * 0.84 - bar_perp_up * 0.44 + med * 0.32).normalized(),
+        (bar_perp_fwd * 0.90 + bar_perp_up * 0.22 + med * 0.38).normalized(),
+    ]
+    for j, wdir in enumerate(thumb_dirs, start=1):
         b = pb(f"{side}HandThumb{j}")
-        b.matrix_basis = Matrix.Identity(4)
-        bpy.context.view_layer.update()
-        M0 = (arm.matrix_world @ b.matrix).to_3x3()
-        f_dir = M0.col[1].normalized()
-        curl_axis = f_dir.cross(target_palm).normalized()
-        R_rot = Quaternion(curl_axis, math.radians(deg)).to_matrix()
-        set_world_rot(b, R_rot @ M0)
+        rot_bone_along(b, wdir, bar_perp_up)
 
-def pose_frame(pull_t):
+def pose_frame(pull_t, direct_p=False):
     """Pose entire TrainerHuman body at pull fraction 0.0 (top) .. 1.0 (bottom)."""
-    # Clear pose cleanly first
     bpy.ops.pose.select_all(action='SELECT')
     bpy.ops.pose.transforms_clear()
     bpy.context.view_layer.update()
 
-    # Smooth easing inside pose
-    p = pull_t * pull_t * (3.0 - 2.0 * pull_t)
+    p = pull_t if direct_p else (pull_t * pull_t * (3.0 - 2.0 * pull_t))
 
     # 1. Hips seated solidly ABOVE Seat & Plates (glutes/thighs rest cleanly on top of Seat)
     # y=+0.08 keeps torso back behind bar; z=0.805 puts thigh undersides right on Seat top (0.702) and clear of Plate top (0.745)
@@ -310,18 +304,15 @@ def pose_frame(pull_t):
         if bar_perp_up.z < 0:
             bar_perp_up = -bar_perp_up
 
-        # Overhand wrap: palm center sits on top-back of cylinder, fingers curve forward-down around cylinder front!
-        # Hand forward direction (wrist -> knuckle): tilted ~32 deg down-forward over the top of the foam
-        target_fd = (bar_perp_fwd * 0.85 - bar_perp_up * 0.53).normalized()
-        # Outward palm normal points DOWN-BACK against cylinder surface
-        target_palm = (-bar_perp_up * 0.85 - bar_perp_fwd * 0.53).normalized()
-        # Re-orthogonalize cleanly
+        # Overhand wrap: flatter wrist over the top of the handle so knuckles rest cleanly outside cylinder edge (0mm clipping)
+        target_fd = (bar_perp_fwd * 0.985 - bar_perp_up * 0.174).normalized()
+        target_palm = (-bar_perp_up * 0.985 - bar_perp_fwd * 0.174).normalized()
         lat_axis = target_fd.cross(target_palm).normalized()
         target_palm = lat_axis.cross(target_fd).normalized()
 
-        # Place wrist so middle of palm (0.044m along target_fd) wraps snugly onto cylinder surface (BAR_RAD + 0.003m)!
-        palm_half_len = 0.044
-        surf_offset = BAR_RAD + 0.003
+        # Wrist sits slightly behind & above center so palm center rests tangent on top and knuckles clear front edge
+        palm_half_len = 0.056
+        surf_offset = BAR_RAD + 0.017
         wrist_target = grip_c - target_fd * palm_half_len - target_palm * surf_offset
 
         # Natural elbow pole: out to the side and down as bar descends, keeping elbows tucked near rib line at bottom
@@ -357,8 +348,8 @@ def pose_frame(pull_t):
         R_hand = F_target @ local_off
         set_world_rot(hand, R_hand)
 
-        # Curl all 5 fingers smoothly around the cylinder
-        curl_fingers(side, wrist_solved, target_fd, target_palm, slope_dir)
+        # Curl all 5 fingers tightly around the cylinder
+        curl_fingers(side, sgn, grip_c, bar_perp_fwd, bar_perp_up, target_fd, target_palm, slope_dir)
 
 # ---------- Keyframe entire 5.0-second cycle (150 frames @ 30fps) matching LatPulldown_Pull ----------
 scene.frame_start = 0
@@ -369,23 +360,21 @@ action = bpy.data.actions.new("LatPulldown_Demo")
 arm.animation_data_create()
 arm.animation_data.action = action
 
-# Sample 9 keyframes across cycle: 0 (top) -> 75 (bottom) -> 150 (top)
+# Exact normalized Bar_Slide Y curve sampled from Unity LatPulldown_Pull (len=4.9667s) so hands lock 100% in sync!
 SAMPLES = [
-    (0,   0.00),
-    (18,  0.14),
-    (38,  0.50),
-    (57,  0.86),
-    (75,  1.00),
-    (93,  0.86),
-    (112, 0.50),
-    (132, 0.14),
-    (150, 0.00),
+    (0, 0.0000), (5, 0.0075), (10, 0.0276), (15, 0.0626), (20, 0.1157),
+    (25, 0.1908), (30, 0.2890), (35, 0.4058), (40, 0.5315), (45, 0.6539),
+    (50, 0.7625), (55, 0.8520), (60, 0.9204), (65, 0.9674), (70, 0.9935),
+    (75, 1.0000), (80, 0.9875), (85, 0.9556), (90, 0.9025), (95, 0.8262),
+    (100, 0.7265), (105, 0.6075), (110, 0.4777), (115, 0.3495), (120, 0.2357),
+    (125, 0.1439), (130, 0.0758), (135, 0.0298), (140, 0.0016), (145, -0.0134),
+    (150, -0.0184),
 ]
 
 BONES_TO_KEY = [b.name for b in arm.pose.bones]
 for frame, pt in SAMPLES:
     scene.frame_set(frame)
-    pose_frame(pt)
+    pose_frame(pt, direct_p=True)
     for bname in BONES_TO_KEY:
         b = arm.pose.bones[bname]
         if bname.endswith("Hips"):
@@ -435,9 +424,14 @@ if PREVIEW_DIR:
     # 3/4 side view matching user's uploaded angle (shows full body from shoes up to overhead bar!)
     snap("demo_3q_top.png", 0, 0.0, (-1.95, -2.15, 1.32), (0.0, -0.05, 0.96))
     snap("demo_3q_bot.png", 75, 1.0, (-1.95, -2.15, 1.32), (0.0, -0.05, 0.96))
-    # Close-up of Right & Left hands gripping the angled black foam cylinder at bottom
+    # Close-up axial & 3/4 views of Right & Left hands gripping the angled black foam cylinder at bottom
     snap("demo_hand_r.png", 75, 1.0, (-0.58, -0.46, 1.28), (-BAR_GRIP_X, BAR_FWD_Y, BAR_BOT_Z))
     snap("demo_hand_l.png", 75, 1.0, (0.58, -0.46, 1.28), (BAR_GRIP_X, BAR_FWD_Y, BAR_BOT_Z))
+    # Axial look straight down handle cylinder axis to inspect palm/finger/thumb wrap & sleeve clearance
+    ax_r = (-BAR_GRIP_X - 0.32 * BAR_SLOPE_R.x, BAR_FWD_Y - 0.02, BAR_BOT_Z - 0.32 * BAR_SLOPE_R.z)
+    ax_l = (BAR_GRIP_X + 0.32 * BAR_SLOPE_L.x, BAR_FWD_Y - 0.02, BAR_BOT_Z + 0.32 * BAR_SLOPE_L.z)
+    snap("demo_grip_axis_r.png", 75, 1.0, ax_r, (-BAR_GRIP_X, BAR_FWD_Y, BAR_BOT_Z))
+    snap("demo_grip_axis_l.png", 75, 1.0, ax_l, (BAR_GRIP_X, BAR_FWD_Y, BAR_BOT_Z))
     bpy.data.objects.remove(cam)
     bpy.data.cameras.remove(cam_d)
 
