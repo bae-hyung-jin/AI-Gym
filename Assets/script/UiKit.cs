@@ -62,6 +62,97 @@ public static class UiKit
         t.rectTransform.anchorMin = t.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
         return b;
     }
+
+    static Sprite _roundedSprite;
+    public static Sprite GetRoundedSprite(int radius = 24, int size = 96)
+    {
+        if (_roundedSprite != null) return _roundedSprite;
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        tex.filterMode = FilterMode.Bilinear;
+        float r = radius;
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dx = (x < r) ? r - x : (x >= size - r ? x - (size - 1 - r) : 0);
+                float dy = (y < r) ? r - y : (y >= size - r ? y - (size - 1 - r) : 0);
+                if (dx > 0 && dy > 0)
+                {
+                    float dist = Mathf.Sqrt(dx * dx + dy * dy);
+                    if (dist > r)
+                        tex.SetPixel(x, y, new Color(1, 1, 1, 0));
+                    else
+                    {
+                        float alpha = Mathf.Clamp01(r - dist + 0.5f);
+                        tex.SetPixel(x, y, new Color(1, 1, 1, alpha));
+                    }
+                }
+                else
+                {
+                    tex.SetPixel(x, y, Color.white);
+                }
+            }
+        }
+        tex.Apply();
+        _roundedSprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(r, r, r, r));
+        return _roundedSprite;
+    }
+
+    public static Image RoundedPanel(Transform parent, Vector2 size, Vector2 pos, Color color, Vector2? anchor = null)
+    {
+        var img = Panel(parent, size, pos, color, anchor);
+        img.sprite = GetRoundedSprite();
+        img.type = Image.Type.Sliced;
+        return img;
+    }
+
+    public static Button RoundedBtn(Transform parent, Font font, string label, int size, Vector2 boxSize, Vector2 pos, Color color, Vector2? anchor = null)
+    {
+        var b = Btn(parent, font, label, size, boxSize, pos, color, anchor);
+        var img = b.GetComponent<Image>();
+        if (img != null)
+        {
+            img.sprite = GetRoundedSprite();
+            img.type = Image.Type.Sliced;
+        }
+        return b;
+    }
+
+    public static (Image bg, Image fill, RectTransform fillRect) ProgressBar(Transform parent, Vector2 size, Vector2 pos, Color bgColor, Color fillColor, bool vertical = false, Vector2? anchor = null)
+    {
+        var root = Rect("ProgressBar", parent, size, pos, anchor ?? new Vector2(0.5f, 0.5f));
+        var bg = root.gameObject.AddComponent<Image>();
+        bg.sprite = GetRoundedSprite();
+        bg.type = Image.Type.Sliced;
+        bg.color = bgColor;
+
+        var fillGo = new GameObject("Fill", typeof(RectTransform));
+        var fillRect = (RectTransform)fillGo.transform;
+        fillRect.SetParent(root, false);
+        var fillImg = fillGo.AddComponent<Image>();
+        fillImg.sprite = GetRoundedSprite();
+        fillImg.type = Image.Type.Sliced;
+        fillImg.color = fillColor;
+
+        if (vertical)
+        {
+            fillRect.anchorMin = new Vector2(0f, 0f);
+            fillRect.anchorMax = new Vector2(1f, 0f);
+            fillRect.pivot = new Vector2(0.5f, 0f);
+            fillRect.sizeDelta = new Vector2(-6f, 0f); // 3px margin
+            fillRect.anchoredPosition = new Vector2(0f, 3f);
+        }
+        else
+        {
+            fillRect.anchorMin = new Vector2(0f, 0f);
+            fillRect.anchorMax = new Vector2(0f, 1f);
+            fillRect.pivot = new Vector2(0f, 0.5f);
+            fillRect.sizeDelta = new Vector2(0f, -6f);
+            fillRect.anchoredPosition = new Vector2(3f, 0f);
+        }
+
+        return (bg, fillImg, fillRect);
+    }
 }
 
 // 창이 16:9보다 좁아도 UI가 화면 밖으로 잘리지 않게, 더 좁은 쪽에 맞춰 크기를 줄인다.
