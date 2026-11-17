@@ -58,15 +58,15 @@ public class SummaryCard : MonoBehaviour
         root.transform.SetParent(c.transform, false);
         var t = root.transform;
         UiKit.Panel(t, new Vector2(2000, 1200), Vector2.zero, new Color(0, 0, 0, 0.6f));
-        UiKit.Panel(t, new Vector2(1100, 980), Vector2.zero, Color.white);
-        UiKit.Panel(t, new Vector2(1100, 520), new Vector2(0, 230), new Color(0.965f, 0.94f, 0.9f));
+        UiKit.RoundedPanel(t, new Vector2(1100, 980), Vector2.zero, Color.white);
+        UiKit.RoundedPanel(t, new Vector2(1100, 520), new Vector2(0, 230), new Color(0.965f, 0.94f, 0.9f));
 
         string[] head = { "✓ 잘 맞아요", "? 선생님께 질문", "+ 다음에 해 보세요", "! 선생님과 먼저 확인" };
         for (var i = 0; i < 4; i++)
         {
             var x = i % 2 == 0 ? -235f : 235f; var y = i < 2 ? 345f : 115f;
             var green = i % 2 == 1;
-            UiKit.Panel(t, new Vector2(440, 220), new Vector2(x, y), green ? new Color(0.93f, 0.96f, 0.88f) : Color.white);
+            UiKit.RoundedPanel(t, new Vector2(440, 220), new Vector2(x, y), green ? new Color(0.93f, 0.96f, 0.88f) : Color.white);
             UiKit.Label(t, fontBold, head[i], 38, new Vector2(400, 56), new Vector2(x, y + 68), TextAnchor.MiddleLeft, new Color(0.1f, 0.1f, 0.1f));
             body[i] = UiKit.Label(t, font, "", 30, new Vector2(400, 130), new Vector2(x, y - 22), TextAnchor.UpperLeft, new Color(0.25f, 0.25f, 0.25f));
         }
@@ -75,8 +75,8 @@ public class SummaryCard : MonoBehaviour
 
         buttons = new GameObject("Buttons", typeof(RectTransform));
         buttons.transform.SetParent(t, false);
-        UiKit.Btn(buttons.transform, fontBold, "이미지로 저장", 36, new Vector2(340, 90), new Vector2(-200, -390), new Color(0.12f, 0.4f, 0.3f)).onClick.AddListener(() => StartCoroutine(SaveImage()));
-        UiKit.Btn(buttons.transform, fontBold, "닫기", 36, new Vector2(240, 90), new Vector2(150, -390), new Color(0.4f, 0.4f, 0.4f)).onClick.AddListener(Close);
+        UiKit.RoundedBtn(buttons.transform, fontBold, "이미지로 저장", 36, new Vector2(340, 90), new Vector2(-200, -390), new Color(0.12f, 0.4f, 0.3f)).onClick.AddListener(() => StartCoroutine(SaveImage()));
+        UiKit.RoundedBtn(buttons.transform, fontBold, "닫기", 36, new Vector2(240, 90), new Vector2(150, -390), new Color(0.4f, 0.4f, 0.4f)).onClick.AddListener(Close);
         root.SetActive(false);
     }
 

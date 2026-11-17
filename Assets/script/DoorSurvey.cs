@@ -31,23 +31,24 @@ public class DoorSurvey : MonoBehaviour
         var canvas = UiKit.MakeCanvas("SurveyCanvas", 90);
         root = canvas.gameObject;
         var t = canvas.transform;
-        UiKit.Panel(t, new Vector2(2000, 1200), Vector2.zero, new Color(0, 0, 0, 0.55f));
-        UiKit.Panel(t, new Vector2(1200, 860), Vector2.zero, new Color(0.1f, 0.13f, 0.2f, 0.97f));
-        UiKit.Label(t, font, "어느 자세가 불편하신가요?\n(여러 개 골라도 됩니다)", 46, new Vector2(1100, 160), new Vector2(0, 320));
+        UiKit.Panel(t, new Vector2(2000, 1200), Vector2.zero, new Color(0, 0, 0, 0.60f));
+        var card = UiKit.RoundedPanel(t, new Vector2(1200, 860), Vector2.zero, new Color(0.07f, 0.10f, 0.16f, 0.97f));
+        UiKit.RoundedPanel(card.transform, new Vector2(1180, 5), new Vector2(0, 424), new Color(0.2f, 0.85f, 0.65f));
+        UiKit.Label(t, font, "어느 자세가 불편하신가요?\n(여러 개 골라도 됩니다)", 44, new Vector2(1100, 160), new Vector2(0, 320));
 
-        var off = new Color(0.25f, 0.3f, 0.4f);
-        var on = new Color(0.15f, 0.55f, 0.45f);
+        var off = new Color(0.20f, 0.26f, 0.36f);
+        var on = new Color(0.12f, 0.58f, 0.48f);
         for (var i = 0; i < options.Length; i++)
         {
             var text = options[i];
-            var b = UiKit.Btn(t, font, text, 40, new Vector2(900, 100), new Vector2(0, 170 - i * 120), off);
+            var b = UiKit.RoundedBtn(t, font, text, 40, new Vector2(900, 100), new Vector2(0, 170 - i * 120), off);
             b.onClick.AddListener(() =>
             {
                 if (!picked.Remove(text)) picked.Add(text);
                 b.targetGraphic.color = picked.Contains(text) ? on : off;
             });
         }
-        var go = UiKit.Btn(t, font, "선택 완료", 42, new Vector2(700, 110), new Vector2(0, -330), new Color(0.2f, 0.45f, 0.75f));
+        var go = UiKit.RoundedBtn(t, font, "선택 완료", 42, new Vector2(700, 110), new Vector2(0, -330), new Color(0.18f, 0.48f, 0.78f));
         go.onClick.AddListener(Finish);
         PlayerFreeze.Push();
     }

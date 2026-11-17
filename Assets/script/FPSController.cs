@@ -21,6 +21,21 @@ public class FPSController : MonoBehaviour
     float pitch;
     float verticalVelocity;
 
+    void Awake()
+    {
+        // 씬에 AudioListener가 2개 이상 켜져 있으면 플레이어 카메라의 것 1개만 남기고 끈다
+        var myListener = cameraTransform != null ? cameraTransform.GetComponentInChildren<AudioListener>(true) : null;
+        var allListeners = FindObjectsByType<AudioListener>(FindObjectsInactive.Exclude);
+        if (allListeners.Length > 1)
+        {
+            foreach (var l in allListeners)
+            {
+                if (myListener != null && l != myListener) l.enabled = false;
+                else if (myListener == null && l != allListeners[0]) l.enabled = false;
+            }
+        }
+    }
+
     void Start()
     {
         controller = GetComponent<CharacterController>();

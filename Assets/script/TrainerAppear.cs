@@ -121,12 +121,13 @@ public class TrainerAppear : MonoBehaviour
 
     void Start()
     {
-        var c = UiKit.MakeCanvas("TrainerSpeechCanvas", 40);
-        panel = UiKit.Panel(c.transform, new Vector2(1500, 190), new Vector2(0, 120), new Color(0.1f, 0.13f, 0.2f, 0.92f), new Vector2(0.5f, 0f)).gameObject;
-        label = UiKit.Label(panel.transform, font, "", 38, new Vector2(1420, 170), Vector2.zero, TextAnchor.MiddleLeft);
-        // 창 폭에 맞춰 늘어나게 해서, 창이 좁아도 글이 화면 밖으로 잘리지 않게 한다
-        var pr = (RectTransform)panel.transform; pr.anchorMin = new Vector2(0, 0); pr.anchorMax = new Vector2(1, 0); pr.pivot = new Vector2(0.5f, 0); pr.offsetMin = new Vector2(30, 260); pr.offsetMax = new Vector2(-30, 450); // 아래의 '질문하기' 버튼(~135)과 운동 중 큰 버튼(~240) 위로 올린다
-        var lr = label.rectTransform; lr.anchorMin = Vector2.zero; lr.anchorMax = Vector2.one; lr.offsetMin = new Vector2(24, 8); lr.offsetMax = new Vector2(-24, -8);
+        var c = UiKit.MakeCanvas("TrainerSpeechCanvas", 34);
+        panel = UiKit.RoundedPanel(c.transform, new Vector2(1140, 76), new Vector2(0, -166), new Color(0.07f, 0.10f, 0.16f, 0.92f), new Vector2(0.5f, 1f)).gameObject;
+        var pr = (RectTransform)panel.transform;
+        pr.pivot = new Vector2(0.5f, 1f);
+        pr.anchoredPosition = new Vector2(0f, -166f); // 상단 HUD(하단 y=-152)와 여백을 두고 아래에 깔끔하게 배치
+        UiKit.RoundedPanel(panel.transform, new Vector2(6, 52), new Vector2(-546, 0), new Color(0.2f, 0.85f, 0.65f));
+        label = UiKit.Label(panel.transform, font, "", 28, new Vector2(1050, 66), new Vector2(12, 0), TextAnchor.MiddleLeft);
         panel.SetActive(false);
         trainer.SetActive(false);
         machine.enabled = false;

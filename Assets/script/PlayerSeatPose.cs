@@ -1,7 +1,8 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 // 플레이어(휴머노이드)를 기구 의자에 앉히고 두 손이 바를 따라가게 한다. 직접 운동하는 동안만 켠다.
-// 랫풀다운 당김에 맞춰 상체 흉추(Spine/Chest)를 자연스럽게 뒤로 젖히고 손가락으로 바를 쥐게(Grip) 보정한다.
+// 랫풀다운 당김에 맞춰 상체 흉추(Spine/Chest)를 자연스럽게 뒤로 젖히고, 손목/손가락으로 바를 쥐며(Grip), 팔꿈치를 아래로 당긴다.
 public class PlayerSeatPose : MonoBehaviour
 {
     [SerializeField] Animator animator;      // 휴머노이드 Animator
@@ -16,13 +17,14 @@ public class PlayerSeatPose : MonoBehaviour
     readonly Quaternion[] footRel = new Quaternion[2];
     float footHeight;
 
-    // 손 회전 및 손가락 그립
-    readonly Quaternion[] handRel = new Quaternion[2], handB0Rel = new Quaternion[2];
+    // 손 회전 및 손가락 그립 (현재 자세와 무관하게 뼈 기하 구조로 손바닥 축을 계산)
+    readonly Quaternion[] handLocalToGrip = new Quaternion[2];
+    readonly bool[] handGripReady = new bool[2];
     readonly Transform[][] finger = new Transform[2][];
     readonly Quaternion[][] fingerRest = new Quaternion[2][];
     readonly Vector3[][] fingerAxis = new Vector3[2][];
     readonly float[][] fingerCurl = new float[2][];
-    static readonly string[] fingerNames = { "Index", "Middle", "Ring", "Little", "Thumb" };
+    static readonly string[] fingerNames = { "Index", "Middle", "Ring", "Pinky", "Little", "Thumb" };
     bool handCached;
 
     float currentPull; // 0 (완전 이완) ~ 1 (최대 수축)
@@ -43,41 +45,65 @@ public class PlayerSeatPose : MonoBehaviour
     void CacheHand(int i, string side)
     {
         if (hand[i] == null) return;
-        var mid = FindBone(animator.transform, side + "HandMiddle2");
-        if (mid == null) return;
+        var root = animator.transform;
+        var mid = FindBone(root, side + "HandMiddle1") ?? FindBone(root, side + "HandMiddle2");
+        var idx = FindBone(root, side + "HandIndex1");
+        var pnk = FindBone(root, side + "HandPinky1") ?? FindBone(root, side + "HandLittle1");
+        if (mid == null || idx == null || pnk == null) return;
 
+        // 자세(Idle / T-pose)에 무관하게 뼈 자체 좌표계로 손가락 뻗는 방향(fd)과 손바닥이 향하는 방향(palmOut) 계산 (Unity 왼손 좌표계 기준)
         var fd = (mid.position - hand[i].position).normalized;
-        var palmDown = Vector3.ProjectOnPlane(Vector3.down, fd).normalized;
-        var r0 = transform.rotation;
-        handRel[i] = Quaternion.Inverse(r0) * hand[i].rotation;
-        handB0Rel[i] = Quaternion.Inverse(r0) * Quaternion.LookRotation(fd, palmDown);
+        var across = (idx.position - pnk.position).normalized;
+        var palmOut = (i == 0 ? Vector3.Cross(across, fd) : Vector3.Cross(fd, across)).normalized;
+        if (palmOut.sqrMagnitude < 1e-5f) return;
 
-        var list = new System.Collections.Generic.List<Transform>();
-        var rest = new System.Collections.Generic.List<Quaternion>();
-        var axis = new System.Collections.Generic.List<Vector3>();
-        var curl = new System.Collections.Generic.List<float>();
+        // hand[i].rotation * handLocalToGrip[i] == LookRotation(fd, palmOut) 가 되도록 로컬 오프셋 저장
+        var desiredFrame = Quaternion.LookRotation(fd, palmOut);
+        handLocalToGrip[i] = Quaternion.Inverse(hand[i].rotation) * desiredFrame;
+        handGripReady[i] = true;
+
+        var list = new List<Transform>();
+        var rest = new List<Quaternion>();
+        var axis = new List<Vector3>();
+        var curl = new List<float>();
+
         foreach (var fn in fingerNames)
         {
             for (var j = 1; j <= 3; j++)
             {
-                var b = FindBone(animator.transform, side + "Hand" + fn + j);
+                var b = FindBone(root, side + "Hand" + fn + j);
                 if (b == null) continue;
                 var dir = b.childCount > 0 ? b.GetChild(0).position - b.position : b.position - b.parent.position;
-                list.Add(b); rest.Add(b.localRotation);
-                axis.Add(Quaternion.Inverse(b.rotation) * Vector3.Cross(dir.normalized, palmDown));
-                curl.Add(fn == "Thumb" ? 25f : (j == 1 ? 55f : j == 2 ? 75f : 50f));
+                if (dir.sqrMagnitude < 1e-6f) continue;
+
+                // 양의 회전 각도일 때 손가락 끝(dir)이 손바닥(palmOut) 쪽으로 접히는 로컬 회전축
+                var worldAxis = Vector3.Cross(dir.normalized, palmOut);
+                if (worldAxis.sqrMagnitude < 1e-6f) continue;
+
+                list.Add(b);
+                rest.Add(b.localRotation);
+                axis.Add(Quaternion.Inverse(b.rotation) * worldAxis.normalized);
+                curl.Add(fn == "Thumb" ? (j == 1 ? 40f : 55f) : (j == 1 ? 82f : j == 2 ? 95f : 75f));
             }
         }
-        finger[i] = list.ToArray(); fingerRest[i] = rest.ToArray(); fingerAxis[i] = axis.ToArray(); fingerCurl[i] = curl.ToArray();
+        finger[i] = list.ToArray();
+        fingerRest[i] = rest.ToArray();
+        fingerAxis[i] = axis.ToArray();
+        fingerCurl[i] = curl.ToArray();
     }
 
     void Grip(int i, Vector3 forward)
     {
         if (hand[i] == null) return;
-        if (handB0Rel[i] != Quaternion.identity || handRel[i] != Quaternion.identity)
+        if (handGripReady[i])
         {
-            hand[i].rotation = Quaternion.LookRotation(Vector3.up, forward) * Quaternion.Inverse(handB0Rel[i]) * handRel[i];
+            // 오버핸드 그립: 손바닥이 바의 위·앞쪽을 덮고 손가락 끝이 바 아래로 감싸 쥠
+            var targetForward = (forward * 0.82f + Vector3.up * 0.57f).normalized;
+            var targetPalm = Vector3.ProjectOnPlane((Vector3.down * 0.85f - forward * 0.52f), targetForward).normalized;
+            var targetFrame = Quaternion.LookRotation(targetForward, targetPalm);
+            hand[i].rotation = targetFrame * Quaternion.Inverse(handLocalToGrip[i]);
         }
+
         if (finger[i] != null)
         {
             for (var j = 0; j < finger[i].Length; j++)
@@ -117,14 +143,17 @@ public class PlayerSeatPose : MonoBehaviour
     {
         var f = Vector3.ProjectOnPlane(facing.forward, Vector3.up).normalized;
         var right = Vector3.Cross(Vector3.up, f);
-        hips.position = seatPoint.position;
 
-        // 상체 흉추 신전 (당길 때 상체가 10~13도 뒤로 젖혀지며 가슴이 펴짐)
-        float leanAngle = Mathf.Lerp(0f, 12.5f, currentPull);
+        // 골반 위치를 좌석 쿠션 윗면 위에 맞추고(바가 모자/얼굴에 걸리지 않게 살짝 뒤로) 정면을 바라보게 정렬
+        hips.position = seatPoint.position + Vector3.up * 0.08f - f * 0.05f;
+        hips.rotation = Quaternion.LookRotation(f, Vector3.up);
+
+        // 상체 흉추 신전: 준비 시 5도 -> 당길수록 22도까지 뒤로 젖히며 가슴을 열어 등 근육 수축
+        float leanAngle = Mathf.Lerp(5f, 22f, currentPull);
         if (spine != null) spine.rotation = Quaternion.AngleAxis(leanAngle * 0.45f, -right) * spine.rotation;
         if (chest != null && chest != spine) chest.rotation = Quaternion.AngleAxis(leanAngle * 0.55f, -right) * chest.rotation;
-        // 머리는 시선을 거울/바 쪽으로 유지
-        if (head != null) head.rotation = Quaternion.AngleAxis(leanAngle * 0.65f, right) * head.rotation;
+        // 머리는 천장을 보지 않도록 시선을 앞쪽(기구/거울)으로 유지
+        if (head != null) head.rotation = Quaternion.AngleAxis(leanAngle * 0.72f, right) * head.rotation;
 
         for (var i = 0; i < 2; i++) // 다리
         {
@@ -134,14 +163,22 @@ public class PlayerSeatPose : MonoBehaviour
             foot[i].rotation = transform.rotation * footRel[i];
         }
 
-        // 팔 및 손
+        // 팔 및 손: 팔꿈치가 귀 뒤로 꺾이지 않고 옆구리/아래로 내려오도록 동적 폴 타겟 계산
         if (handTargets != null && handTargets.Length >= 2)
         {
             var rightIdx = Vector3.Dot(handTargets[0].position - hips.position, right) > Vector3.Dot(handTargets[1].position - hips.position, right) ? 0 : 1;
+            var shoulderCenter = hips.position + Vector3.up * 0.45f;
             for (var i = 0; i < 2; i++)
             {
                 var k = i == 1 ? rightIdx : 1 - rightIdx;
-                TrainerIK.Solve(upArm[i], loArm[i], hand[i], handTargets[k].position, elbowHints[k].position);
+                float sideSign = (i == 0 ? -1f : 1f);
+                var dynamicElbowPole = shoulderCenter
+                    + right * (0.58f * sideSign)
+                    + Vector3.up * Mathf.Lerp(0.10f, -0.45f, currentPull)
+                    + f * 0.08f;
+
+                var gripPos = handTargets[k].position + Vector3.up * 0.065f - f * 0.02f;
+                TrainerIK.Solve(upArm[i], loArm[i], hand[i], gripPos, dynamicElbowPole);
                 Grip(i, f);
             }
         }
