@@ -38,27 +38,27 @@ public class TrainerChat : MonoBehaviour
     {
         var canvas = UiKit.MakeCanvas("ChatCanvas", 50);
         var t = canvas.transform;
-        openBtn = UiKit.RoundedBtn(t, font, "궁금한 것 물어보기 (T)", 38, new Vector2(540, 100), new Vector2(-300, 75), new Color(0.12f, 0.58f, 0.48f, 0.96f), new Vector2(1, 0)).gameObject;
+        openBtn = UiKit.RoundedBtn(t, font, "? 궁금한 것 물어보기 (T)", 38, new Vector2(560, 100), new Vector2(-310, 75), Theme.Accent, new Vector2(1, 0)).gameObject;
         openBtn.GetComponent<Button>().onClick.AddListener(Toggle);
 
-        panel = UiKit.RoundedPanel(t, new Vector2(1500, 1000), Vector2.zero, new Color(0.07f, 0.10f, 0.16f, 0.99f)).gameObject; // 뒤가 비쳐 보이지 않게 불투명
+        panel = UiKit.Card(t, new Vector2(1500, 1000), Vector2.zero, Theme.WithAlpha(Theme.Surface, 0.99f)).gameObject; // 뒤가 비쳐 보이지 않게 불투명
         var p = panel.transform;
-        UiKit.RoundedPanel(p, new Vector2(1480, 5), new Vector2(0, 494), new Color(0.2f, 0.85f, 0.65f));
-        UiKit.Label(p, font, "궁금한 것을 눌러 보세요", 50, new Vector2(1000, 90), new Vector2(0, 440));
-        UiKit.RoundedBtn(p, font, "닫기", 40, new Vector2(200, 90), new Vector2(620, 440), new Color(0.48f, 0.25f, 0.24f)).onClick.AddListener(Toggle);
+        UiKit.AccentStripe(p, 1480, 494);
+        UiKit.Label(p, font, "궁금한 것을 눌러 보세요", 50, new Vector2(1000, 90), new Vector2(0, 440), TextAnchor.MiddleCenter, Theme.Text);
+        UiKit.RoundedBtn(p, font, "닫기", 40, new Vector2(200, 90), new Vector2(620, 440), Theme.Danger).onClick.AddListener(Toggle);
 
         for (var i = 0; i < Presets.Length; i++) // 2열 3행의 큰 질문 버튼
         {
             var question = Presets[i][0]; var canned = Presets[i][1];
             var x = i % 2 == 0 ? -365f : 365f; var y = 320f - (i / 2) * 120f;
-            UiKit.RoundedBtn(p, font, question, 42, new Vector2(700, 100), new Vector2(x, y), new Color(0.18f, 0.46f, 0.76f)).onClick.AddListener(() => ShowAnswer(canned));
+            UiKit.RoundedBtn(p, font, question, 42, new Vector2(700, 100), new Vector2(x, y), Theme.Choice).onClick.AddListener(() => ShowAnswer(canned));
         }
 
         // 세 번째 줄 버튼(아래 끝 y=30)보다 아래에서 시작하게 둔다
-        answer = UiKit.Label(p, font, "", 40, new Vector2(1400, 340), new Vector2(0, -160), TextAnchor.UpperLeft);
+        answer = UiKit.Label(p, font, "", 40, new Vector2(1400, 340), new Vector2(0, -160), TextAnchor.UpperLeft, Theme.Text);
 
         var field = UiKit.RoundedPanel(p, new Vector2(1000, 100), new Vector2(-190, -400), Color.white);
-        var ph = UiKit.Label(field.transform, font, "직접 쓰셔도 돼요", 38, new Vector2(960, 90), Vector2.zero, TextAnchor.MiddleLeft, new Color(0.5f, 0.5f, 0.5f));
+        var ph = UiKit.Label(field.transform, font, "직접 쓰셔도 돼요", 38, new Vector2(960, 90), Vector2.zero, TextAnchor.MiddleLeft, Theme.InkMuted);
         var tx = UiKit.Label(field.transform, font, "", 38, new Vector2(960, 90), Vector2.zero, TextAnchor.MiddleLeft, Color.black);
         tx.raycastTarget = true;
         input = field.gameObject.AddComponent<InputField>();
@@ -71,7 +71,7 @@ public class TrainerChat : MonoBehaviour
         var ask = UiKit.Btn(field.transform, font, "", 1, new Vector2(1000, 100), Vector2.zero, new Color(0, 0, 0, 0));
         ask.onClick.AddListener(() => { input.text = PromptInput("궁금한 것을 써 주세요", input.text); Send(); });
 #endif
-        UiKit.RoundedBtn(p, font, "보내기", 42, new Vector2(260, 100), new Vector2(560, -400), new Color(0.18f, 0.46f, 0.76f)).onClick.AddListener(Send);
+        UiKit.RoundedBtn(p, font, "보내기 ▶", 42, new Vector2(260, 100), new Vector2(560, -400), Theme.Accent).onClick.AddListener(Send);
         panel.SetActive(false);
     }
 

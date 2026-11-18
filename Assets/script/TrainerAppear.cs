@@ -133,12 +133,12 @@ public class TrainerAppear : MonoBehaviour
     void Start()
     {
         var c = UiKit.MakeCanvas("TrainerSpeechCanvas", 34);
-        panel = UiKit.RoundedPanel(c.transform, new Vector2(1140, 76), new Vector2(0, -166), new Color(0.07f, 0.10f, 0.16f, 0.92f), new Vector2(0.5f, 1f)).gameObject;
+        panel = UiKit.RoundedPanel(c.transform, new Vector2(1140, 76), new Vector2(0, -166), Theme.WithAlpha(Theme.Surface, 0.92f), new Vector2(0.5f, 1f)).gameObject;
         var pr = (RectTransform)panel.transform;
         pr.pivot = new Vector2(0.5f, 1f);
         pr.anchoredPosition = new Vector2(0f, -166f); // 상단 HUD(하단 y=-152)와 여백을 두고 아래에 깔끔하게 배치
-        UiKit.RoundedPanel(panel.transform, new Vector2(6, 52), new Vector2(-546, 0), new Color(0.2f, 0.85f, 0.65f));
-        label = UiKit.Label(panel.transform, font, "", 28, new Vector2(1050, 66), new Vector2(12, 0), TextAnchor.MiddleLeft);
+        UiKit.RoundedPanel(panel.transform, new Vector2(6, 52), new Vector2(-546, 0), Theme.AccentLine);
+        label = UiKit.Label(panel.transform, font, "", 30, new Vector2(1050, 66), new Vector2(12, 0), TextAnchor.MiddleLeft, Theme.Text);
         panel.SetActive(false);
         // 새 블렌더 시범 전용 아바타(TrainerHuman_Demo: 좌석·허벅지 패드·바 그립 포함 150프레임 애니메이션) 로드
         var modernDemo = Resources.Load<GameObject>("TrainerHuman_Demo") ?? Resources.Load<GameObject>("TrainerHuman");

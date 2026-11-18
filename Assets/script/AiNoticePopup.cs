@@ -30,12 +30,12 @@ public class AiNoticePopup : MonoBehaviour
         var canvas = UiKit.MakeCanvas("AiNoticeCanvas", 100);
         root = canvas.gameObject;
 
-        UiKit.Panel(canvas.transform, new Vector2(2000, 1200), Vector2.zero, new Color(0, 0, 0, 0.60f));
-        var card = UiKit.RoundedPanel(canvas.transform, new Vector2(1200, 620), Vector2.zero, new Color(0.07f, 0.10f, 0.16f, 0.97f));
-        UiKit.RoundedPanel(card.transform, new Vector2(1180, 5), new Vector2(0, 304), new Color(0.2f, 0.85f, 0.65f));
-        UiKit.Label(canvas.transform, font, message, 40, new Vector2(1080, 400), new Vector2(0, 60));
+        UiKit.Panel(canvas.transform, new Vector2(2000, 1200), Vector2.zero, Theme.Dim);
+        var card = UiKit.Card(canvas.transform, new Vector2(1200, 620), Vector2.zero, Theme.Surface);
+        UiKit.AccentStripe(card.transform, 1180, 304);
+        UiKit.Label(canvas.transform, font, message, 40, new Vector2(1080, 400), new Vector2(0, 60), TextAnchor.MiddleCenter, Theme.Text);
 
-        var ok = UiKit.RoundedBtn(canvas.transform, font, "확인", 42, new Vector2(420, 108), new Vector2(0, -220), new Color(0.12f, 0.58f, 0.48f));
+        var ok = UiKit.RoundedBtn(canvas.transform, font, "확인", 42, new Vector2(420, 108), new Vector2(0, -220), Theme.Accent);
         ok.onClick.AddListener(Close);
 
         // 플레이 중일 때만 플레이어 조작을 멈춥니다 (에디터 편집 중에는 에러 방지)

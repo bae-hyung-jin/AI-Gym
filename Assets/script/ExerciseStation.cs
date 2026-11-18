@@ -42,8 +42,8 @@ public class ExerciseStation : MonoBehaviour
 
     RectTransform pullBtnRect;
     Image pullBtnImg;
-    readonly Color pullBtnNormalColor = new Color(0.12f, 0.58f, 0.48f, 0.98f);
-    readonly Color pullBtnActiveColor = new Color(0.18f, 0.78f, 0.65f, 1f);
+    static Color PullBtnNormal => Theme.Accent;
+    static Color PullBtnActive => Theme.AccentPressed;
 
     Transform barSlide;
 
@@ -82,30 +82,30 @@ public class ExerciseStation : MonoBehaviour
         var c = UiKit.MakeCanvas("ExerciseCanvas", 35);
 
         // 1. 접근 프롬프트 (라운드 글래스 필 배지)
-        promptRoot = UiKit.RoundedPanel(c.transform, new Vector2(640, 80), new Vector2(0, 100), new Color(0.08f, 0.12f, 0.18f, 0.95f), new Vector2(0.5f, 0f)).gameObject;
-        UiKit.Label(promptRoot.transform, font, "▶ [ E ] 키를 눌러 랫풀다운 운동하기", 36, new Vector2(620, 70), Vector2.zero, TextAnchor.MiddleCenter, new Color(0.4f, 0.95f, 0.75f));
+        promptRoot = UiKit.Card(c.transform, new Vector2(680, 84), new Vector2(0, 100), Theme.Surface, new Vector2(0.5f, 0f)).gameObject;
+        UiKit.Label(promptRoot.transform, font, $"▶ [ E ] 키를 눌러 {machineName} 운동하기", 36, new Vector2(660, 70), Vector2.zero, TextAnchor.MiddleCenter, Theme.AccentText);
         promptRoot.SetActive(false);
 
         // 2. 상단 헤더 HUD 카드 (깔끔한 글래스 카드 + 분리된 대형 횟수 카운터)
-        hudRoot = UiKit.RoundedPanel(c.transform, new Vector2(1140, 128), new Vector2(0, -24), new Color(0.07f, 0.10f, 0.16f, 0.94f), new Vector2(0.5f, 1f)).gameObject;
-        UiKit.RoundedPanel(hudRoot.transform, new Vector2(1120, 5), new Vector2(0, 59), new Color(0.2f, 0.85f, 0.65f));
+        hudRoot = UiKit.Card(c.transform, new Vector2(1140, 128), new Vector2(0, -24), Theme.Surface, new Vector2(0.5f, 1f)).gameObject;
+        UiKit.AccentStripe(hudRoot.transform, 1120, 59);
 
-        UiKit.Label(hudRoot.transform, font, machineName, 38, new Vector2(220, 46), new Vector2(-415, 22), TextAnchor.MiddleLeft, Color.white).fontStyle = FontStyle.Bold;
-        UiKit.Label(hudRoot.transform, font, "· 등 근육 강화", 28, new Vector2(300, 40), new Vector2(-190, 22), TextAnchor.MiddleLeft, new Color(0.49f, 0.83f, 0.70f));
-        UiKit.Label(hudRoot.transform, font, "무리하지 마시고 편안한 속도로 당겨보세요. 아프면 바로 멈추세요.", 26, new Vector2(760, 40), new Vector2(-145, -22), TextAnchor.MiddleLeft, new Color(0.95f, 0.85f, 0.60f));
+        UiKit.Label(hudRoot.transform, font, machineName, 38, new Vector2(220, 46), new Vector2(-415, 22), TextAnchor.MiddleLeft, Theme.Text).fontStyle = FontStyle.Bold;
+        UiKit.Label(hudRoot.transform, font, "· 등 근육 강화", Theme.FontMin, new Vector2(300, 40), new Vector2(-190, 22), TextAnchor.MiddleLeft, Theme.AccentText);
+        UiKit.Label(hudRoot.transform, font, "⚠ 편안한 속도로 당기고, 아프면 바로 멈추세요.", Theme.FontMin, new Vector2(760, 40), new Vector2(-145, -22), TextAnchor.MiddleLeft, Theme.Caution);
 
-        UiKit.Label(hudRoot.transform, font, "완료 횟수", 22, new Vector2(180, 32), new Vector2(395, 34), TextAnchor.MiddleRight, new Color(0.56f, 0.64f, 0.72f));
-        repsNumberText = UiKit.Label(hudRoot.transform, font, "0", 62, new Vector2(140, 72), new Vector2(315, -12), TextAnchor.MiddleRight, new Color(0.24f, 1f, 0.71f));
+        UiKit.Label(hudRoot.transform, font, "완료 횟수", Theme.FontMin, new Vector2(200, 38), new Vector2(395, 36), TextAnchor.MiddleRight, Theme.TextMuted);
+        repsNumberText = UiKit.Label(hudRoot.transform, font, "0", 62, new Vector2(140, 72), new Vector2(315, -12), TextAnchor.MiddleRight, Theme.AccentText);
         repsNumberText.fontStyle = FontStyle.Bold;
         repsTransform = repsNumberText.rectTransform;
-        UiKit.Label(hudRoot.transform, font, $"/ {targetReps}회", 30, new Vector2(130, 46), new Vector2(475, -20), TextAnchor.MiddleLeft, new Color(0.78f, 0.83f, 0.88f));
+        UiKit.Label(hudRoot.transform, font, $"/ {targetReps}회", 30, new Vector2(130, 46), new Vector2(475, -20), TextAnchor.MiddleLeft, Theme.TextSub);
         hudRoot.SetActive(false);
 
         // 3. 우측 실시간 당김 게이지 (Tension Gauge - 넓은 카드로 텍스트 겹침/잘림 방지)
-        gaugeRoot = UiKit.RoundedPanel(c.transform, new Vector2(190, 400), new Vector2(-40, 45), new Color(0.06f, 0.09f, 0.15f, 0.94f), new Vector2(1f, 0.5f)).gameObject;
-        UiKit.Label(gaugeRoot.transform, font, "당김 강도", 26, new Vector2(170, 36), new Vector2(0, 168), TextAnchor.MiddleCenter, new Color(0.88f, 0.92f, 0.96f)).fontStyle = FontStyle.Bold;
+        gaugeRoot = UiKit.Card(c.transform, new Vector2(220, 420), new Vector2(-40, 45), Theme.Surface, new Vector2(1f, 0.5f)).gameObject;
+        UiKit.Label(gaugeRoot.transform, font, "당김 강도", 30, new Vector2(200, 40), new Vector2(0, 178), TextAnchor.MiddleCenter, Theme.Text).fontStyle = FontStyle.Bold;
 
-        var track = UiKit.RoundedPanel(gaugeRoot.transform, new Vector2(38, 250), new Vector2(0, 18), new Color(0.12f, 0.16f, 0.24f, 0.98f));
+        var track = UiKit.RoundedPanel(gaugeRoot.transform, new Vector2(38, 250), new Vector2(0, 22), Theme.SurfaceRaised);
         var fillGo = new GameObject("GaugeFill", typeof(RectTransform));
         gaugeFillRect = (RectTransform)fillGo.transform;
         gaugeFillRect.SetParent(track.transform, false);
@@ -117,16 +117,16 @@ public class ExerciseStation : MonoBehaviour
         gaugeFillImg = fillGo.AddComponent<Image>();
         gaugeFillImg.sprite = UiKit.GetRoundedSprite();
         gaugeFillImg.type = Image.Type.Sliced;
-        gaugeFillImg.color = new Color(0.2f, 0.85f, 0.6f);
+        gaugeFillImg.color = Theme.Info;
 
         // 94% 완료 목표 가이드 라인
-        UiKit.Panel(track.transform, new Vector2(48, 4), new Vector2(0, 250f * 0.94f - 125f), new Color(1f, 0.85f, 0.2f, 0.95f));
+        UiKit.Panel(track.transform, new Vector2(48, 4), new Vector2(0, 250f * 0.94f - 125f), Theme.Gold);
 
-        gaugeStatusText = UiKit.Label(gaugeRoot.transform, font, "가슴 쪽으로\n당겨보세요", 22, new Vector2(170, 62), new Vector2(0, -150), TextAnchor.MiddleCenter, new Color(0.65f, 0.88f, 1f));
+        gaugeStatusText = UiKit.Label(gaugeRoot.transform, font, "● 가슴 쪽으로\n당겨보세요", Theme.FontMin, new Vector2(210, 80), new Vector2(0, -158), TextAnchor.MiddleCenter, Theme.InfoText);
         gaugeRoot.SetActive(false);
 
         // 4. 1회 완료 축하 텍스트
-        floatingText = UiKit.Label(c.transform, font, "", 52, new Vector2(900, 100), new Vector2(0, 180), TextAnchor.MiddleCenter, new Color(1f, 0.92f, 0.35f));
+        floatingText = UiKit.Label(c.transform, font, "", 52, new Vector2(900, 100), new Vector2(0, 180), TextAnchor.MiddleCenter, Theme.Gold);
         floatingText.fontStyle = FontStyle.Bold;
         floatingText.gameObject.SetActive(false);
 
@@ -139,11 +139,11 @@ public class ExerciseStation : MonoBehaviour
         cr.offsetMin = cr.offsetMax = Vector2.zero;
         var bottom = new Vector2(0.5f, 0f);
 
-        var pullBtn = UiKit.RoundedBtn(controlsRoot.transform, font, "", 40, new Vector2(640, 124), new Vector2(-165, 82), pullBtnNormalColor, bottom);
+        var pullBtn = UiKit.RoundedBtn(controlsRoot.transform, font, "", 40, new Vector2(640, 124), new Vector2(-165, 82), PullBtnNormal, bottom);
         pullBtnRect = pullBtn.GetComponent<RectTransform>();
         pullBtnImg = pullBtn.GetComponent<Image>();
-        UiKit.Label(pullBtn.transform, font, "▼ 누르고 있으면 당겨져요", 40, new Vector2(600, 56), new Vector2(0, 18), TextAnchor.MiddleCenter, Color.white).fontStyle = FontStyle.Bold;
-        UiKit.Label(pullBtn.transform, font, "[ 스페이스 바 또는 화면 길게 누름 ]", 24, new Vector2(600, 36), new Vector2(0, -28), TextAnchor.MiddleCenter, new Color(0.82f, 1f, 0.94f));
+        UiKit.Label(pullBtn.transform, font, "▼ 누르고 있으면 당겨져요", Theme.FontButton, new Vector2(600, 56), new Vector2(0, 20), TextAnchor.MiddleCenter, Theme.Text).fontStyle = FontStyle.Bold;
+        UiKit.Label(pullBtn.transform, font, "[ 스페이스 바 또는 화면 길게 누름 ]", Theme.FontMin, new Vector2(620, 40), new Vector2(0, -30), TextAnchor.MiddleCenter, Theme.Text);
 
         var trig = pullBtn.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
         void On(UnityEngine.EventSystems.EventTriggerType type, bool value)
@@ -156,9 +156,9 @@ public class ExerciseStation : MonoBehaviour
         On(UnityEngine.EventSystems.EventTriggerType.PointerUp, false);
         On(UnityEngine.EventSystems.EventTriggerType.PointerExit, false);
 
-        var quitBtn = UiKit.RoundedBtn(controlsRoot.transform, font, "", 36, new Vector2(290, 124), new Vector2(330, 82), new Color(0.48f, 0.25f, 0.24f, 0.96f), bottom);
-        UiKit.Label(quitBtn.transform, font, "운동 마치기", 36, new Vector2(260, 50), new Vector2(0, 18), TextAnchor.MiddleCenter, Color.white).fontStyle = FontStyle.Bold;
-        UiKit.Label(quitBtn.transform, font, "[ Esc 키 ]", 24, new Vector2(260, 34), new Vector2(0, -28), TextAnchor.MiddleCenter, new Color(1f, 0.82f, 0.78f));
+        var quitBtn = UiKit.RoundedBtn(controlsRoot.transform, font, "", 36, new Vector2(290, 124), new Vector2(330, 82), Theme.Danger, bottom);
+        UiKit.Label(quitBtn.transform, font, "■ 운동 마치기", 36, new Vector2(270, 50), new Vector2(0, 20), TextAnchor.MiddleCenter, Theme.Text).fontStyle = FontStyle.Bold;
+        UiKit.Label(quitBtn.transform, font, "[ Esc 키 ]", Theme.FontMin, new Vector2(260, 40), new Vector2(0, -30), TextAnchor.MiddleCenter, Theme.DangerText);
         quitBtn.onClick.AddListener(() => { if (active) End(); });
         controlsRoot.SetActive(false);
     }
@@ -251,7 +251,7 @@ public class ExerciseStation : MonoBehaviour
         {
             floatTimer -= Time.deltaTime;
             float alpha = Mathf.Clamp01(floatTimer / 0.4f);
-            floatingText.color = new Color(1f, 0.92f, 0.35f, alpha);
+            floatingText.color = Theme.WithAlpha(Theme.Gold, alpha);
             floatingText.rectTransform.anchoredPosition = new Vector2(0f, 180f + (1.6f - floatTimer) * 35f);
             if (floatTimer <= 0f) floatingText.gameObject.SetActive(false);
         }
@@ -262,27 +262,27 @@ public class ExerciseStation : MonoBehaviour
 
         if (rawPull >= 0.94f)
         {
-            gaugeFillImg.color = new Color(1f, 0.88f, 0.25f);
+            gaugeFillImg.color = Theme.Gold;
             gaugeStatusText.text = "★ 완료!\n천천히 놓으세요";
-            gaugeStatusText.color = new Color(1f, 0.92f, 0.35f);
+            gaugeStatusText.color = Theme.Gold;
         }
         else if (wentDown)
         {
-            gaugeFillImg.color = new Color(0.4f, 0.95f, 0.7f);
+            gaugeFillImg.color = Theme.AccentPressed;
             gaugeStatusText.text = "▲ 천천히\n팔을 올리세요";
-            gaugeStatusText.color = new Color(0.6f, 1f, 0.82f);
+            gaugeStatusText.color = Theme.AccentText;
         }
         else if (pulling)
         {
-            gaugeFillImg.color = Color.Lerp(new Color(0.2f, 0.75f, 1f), new Color(0.2f, 0.95f, 0.6f), rawPull);
-            gaugeStatusText.text = "▼ 계속\n당겨주세요...";
-            gaugeStatusText.color = new Color(0.35f, 0.95f, 0.75f);
+            gaugeFillImg.color = Color.Lerp(Theme.Info, Theme.AccentLine, rawPull);
+            gaugeStatusText.text = "▼ 계속\n당겨 주세요";
+            gaugeStatusText.color = Theme.AccentText;
         }
         else
         {
-            gaugeFillImg.color = new Color(0.2f, 0.7f, 0.95f);
-            gaugeStatusText.text = "가슴 쪽으로\n당겨보세요";
-            gaugeStatusText.color = new Color(0.72f, 0.88f, 1f);
+            gaugeFillImg.color = Theme.Info;
+            gaugeStatusText.text = "● 가슴 쪽으로\n당겨보세요";
+            gaugeStatusText.color = Theme.InfoText;
         }
 
         // 4. 하단 당기기 버튼 상호작용 피드백
@@ -290,7 +290,7 @@ public class ExerciseStation : MonoBehaviour
         {
             float btnTargetScale = pulling ? 0.96f : 1.0f;
             pullBtnRect.localScale = Vector3.Lerp(pullBtnRect.localScale, new Vector3(btnTargetScale, btnTargetScale, 1f), 15f * Time.deltaTime);
-            pullBtnImg.color = pulling ? pullBtnActiveColor : pullBtnNormalColor;
+            pullBtnImg.color = pulling ? PullBtnActive : PullBtnNormal;
         }
     }
 

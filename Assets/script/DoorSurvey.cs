@@ -31,24 +31,27 @@ public class DoorSurvey : MonoBehaviour
         var canvas = UiKit.MakeCanvas("SurveyCanvas", 90);
         root = canvas.gameObject;
         var t = canvas.transform;
-        UiKit.Panel(t, new Vector2(2000, 1200), Vector2.zero, new Color(0, 0, 0, 0.60f));
-        var card = UiKit.RoundedPanel(t, new Vector2(1200, 860), Vector2.zero, new Color(0.07f, 0.10f, 0.16f, 0.97f));
-        UiKit.RoundedPanel(card.transform, new Vector2(1180, 5), new Vector2(0, 424), new Color(0.2f, 0.85f, 0.65f));
+        UiKit.Panel(t, new Vector2(2000, 1200), Vector2.zero, Theme.Dim);
+        var card = UiKit.Card(t, new Vector2(1200, 860), Vector2.zero, Theme.Surface);
+        UiKit.AccentStripe(card.transform, 1180, 424);
         UiKit.Label(t, font, "어느 자세가 불편하신가요?\n(여러 개 골라도 됩니다)", 44, new Vector2(1100, 160), new Vector2(0, 320));
 
-        var off = new Color(0.20f, 0.26f, 0.36f);
-        var on = new Color(0.12f, 0.58f, 0.48f);
+        var off = Theme.Choice;
+        var on = Theme.Accent;
         for (var i = 0; i < options.Length; i++)
         {
             var text = options[i];
-            var b = UiKit.RoundedBtn(t, font, text, 40, new Vector2(900, 100), new Vector2(0, 170 - i * 120), off);
+            var b = UiKit.RoundedBtn(t, font, "○  " + text, 40, new Vector2(900, 100), new Vector2(0, 170 - i * 120), off);
+            var label = b.GetComponentInChildren<Text>();
             b.onClick.AddListener(() =>
             {
                 if (!picked.Remove(text)) picked.Add(text);
-                b.targetGraphic.color = picked.Contains(text) ? on : off;
+                var on_ = picked.Contains(text);
+                b.targetGraphic.color = on_ ? on : off;
+                label.text = (on_ ? "✓  " : "○  ") + text; // 색만이 아니라 표시로도 고른 것을 보여 준다
             });
         }
-        var go = UiKit.RoundedBtn(t, font, "선택 완료", 42, new Vector2(700, 110), new Vector2(0, -330), new Color(0.18f, 0.48f, 0.78f));
+        var go = UiKit.RoundedBtn(t, font, "선택 완료 ▶", 42, new Vector2(700, 110), new Vector2(0, -330), Theme.Accent);
         go.onClick.AddListener(Finish);
         PlayerFreeze.Push();
     }
