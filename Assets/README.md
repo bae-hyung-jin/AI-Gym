@@ -213,6 +213,14 @@ DoorSwitch               ← 오른쪽 벽면 스위치. DoorSwitch, Box Collide
 - 다시 만들려면 `blender -b --python make_eagle_human.py`를 실행한다 (원본 `Ch38_nonPBR.fbx`가 필요).
 - `make_avatar.py`는 초기 시도 스크립트이며 사용하지 않는다.
 
+## 화면 디자인 규칙 (UiKit.Theme)
+
+- 색과 글자 크기는 `Assets/script/UiKit.cs`의 `Theme`에서만 정한다. 화면 코드에 `new Color(...)`를 직접 쓰지 않는다.
+- 행동 버튼은 `Theme.Accent`(민트) 한 가지, 멈춤·닫기는 `Theme.Danger`, 고르는 버튼은 `Theme.Choice`, 보조 버튼은 `Theme.Neutral`.
+- 글자는 `Theme.FontMin`(28) 이상. 본문 34, 버튼 40, 제목 48 정도.
+- 상태는 색만으로 나타내지 않고 `● ▼ ▲ ★ ✓ ○ ■` 같은 기호와 짧은 말을 함께 쓴다. Freesentation 글꼴에 없는 기호(`⤓`, `✕` 등)는 쓰지 않는다.
+- 팝업·HUD 카드는 `UiKit.Card`(그림자 포함)와 `UiKit.AccentStripe`(위쪽 띠)를 쓴다.
+
 ## 6. 알려진 문제와 할 일
 
 - [ ] 1인칭 모자·머리카락 숨김과 발소리를 코드로 넣었다. Windows 에디터에서 플레이로 확인하고 씬을 저장한다.

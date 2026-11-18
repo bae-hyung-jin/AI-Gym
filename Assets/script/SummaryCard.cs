@@ -57,26 +57,27 @@ public class SummaryCard : MonoBehaviour
         root = new GameObject("Card", typeof(RectTransform));
         root.transform.SetParent(c.transform, false);
         var t = root.transform;
-        UiKit.Panel(t, new Vector2(2000, 1200), Vector2.zero, new Color(0, 0, 0, 0.6f));
-        UiKit.Panel(t, new Vector2(1100, 980), Vector2.zero, Color.white);
-        UiKit.Panel(t, new Vector2(1100, 520), new Vector2(0, 230), new Color(0.965f, 0.94f, 0.9f));
+        UiKit.Panel(t, new Vector2(2000, 1200), Vector2.zero, Theme.Dim);
+        UiKit.Card(t, new Vector2(1100, 980), Vector2.zero, Theme.Paper);
+        UiKit.RoundedPanel(t, new Vector2(1100, 520), new Vector2(0, 230), Theme.PaperWarm);
+        UiKit.RoundedPanel(t, new Vector2(1060, 6), new Vector2(0, 486), Theme.Accent);
 
         string[] head = { "✓ 잘 맞아요", "? 선생님께 질문", "+ 다음에 해 보세요", "! 선생님과 먼저 확인" };
         for (var i = 0; i < 4; i++)
         {
             var x = i % 2 == 0 ? -235f : 235f; var y = i < 2 ? 345f : 115f;
             var green = i % 2 == 1;
-            UiKit.Panel(t, new Vector2(440, 220), new Vector2(x, y), green ? new Color(0.93f, 0.96f, 0.88f) : Color.white);
-            UiKit.Label(t, fontBold, head[i], 38, new Vector2(400, 56), new Vector2(x, y + 68), TextAnchor.MiddleLeft, new Color(0.1f, 0.1f, 0.1f));
-            body[i] = UiKit.Label(t, font, "", 30, new Vector2(400, 130), new Vector2(x, y - 22), TextAnchor.UpperLeft, new Color(0.25f, 0.25f, 0.25f));
+            UiKit.RoundedPanel(t, new Vector2(440, 220), new Vector2(x, y), green ? Theme.PaperAccent : Theme.Paper);
+            UiKit.Label(t, fontBold, head[i], 38, new Vector2(400, 56), new Vector2(x, y + 68), TextAnchor.MiddleLeft, i == 3 ? Theme.Danger : Theme.AccentInk);
+            body[i] = UiKit.Label(t, font, "", 30, new Vector2(400, 130), new Vector2(x, y - 22), TextAnchor.UpperLeft, Theme.InkSub);
         }
-        title = UiKit.Label(t, fontBold, "4칸 요약 카드", 58, new Vector2(960, 80), new Vector2(0, -75), TextAnchor.MiddleLeft, new Color(0.1f, 0.1f, 0.1f));
-        sub = UiKit.Label(t, font, "", 32, new Vector2(960, 120), new Vector2(0, -170), TextAnchor.UpperLeft, new Color(0.45f, 0.45f, 0.45f));
+        title = UiKit.Label(t, fontBold, "4칸 요약 카드", 58, new Vector2(960, 80), new Vector2(0, -75), TextAnchor.MiddleLeft, Theme.Ink);
+        sub = UiKit.Label(t, font, "", 32, new Vector2(960, 120), new Vector2(0, -170), TextAnchor.UpperLeft, Theme.InkMuted);
 
         buttons = new GameObject("Buttons", typeof(RectTransform));
         buttons.transform.SetParent(t, false);
-        UiKit.Btn(buttons.transform, fontBold, "이미지로 저장", 36, new Vector2(340, 90), new Vector2(-200, -390), new Color(0.12f, 0.4f, 0.3f)).onClick.AddListener(() => StartCoroutine(SaveImage()));
-        UiKit.Btn(buttons.transform, fontBold, "닫기", 36, new Vector2(240, 90), new Vector2(150, -390), new Color(0.4f, 0.4f, 0.4f)).onClick.AddListener(Close);
+        UiKit.RoundedBtn(buttons.transform, fontBold, "이미지로 저장", 36, new Vector2(340, 90), new Vector2(-200, -390), Theme.Accent).onClick.AddListener(() => StartCoroutine(SaveImage()));
+        UiKit.RoundedBtn(buttons.transform, fontBold, "닫기", 36, new Vector2(240, 90), new Vector2(150, -390), Theme.Neutral).onClick.AddListener(Close);
         root.SetActive(false);
     }
 

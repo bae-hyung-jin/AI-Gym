@@ -32,6 +32,8 @@ public class TrainerAppear : MonoBehaviour
 
     void EnsureCoachPrefab()
     {
+        var modern = Resources.Load<GameObject>("TrainerHuman");
+        if (modern != null) { coachPrefab = modern; return; }
         if (coachPrefab != null) return;
         coachPrefab = Resources.Load<GameObject>("AI_Trainer");
 #if UNITY_EDITOR
@@ -69,8 +71,17 @@ public class TrainerAppear : MonoBehaviour
                 {
                     coachAvatar.name = "AI_Trainer_Coach";
                     coachAvatar.SetActive(true);
-                    if (coachAvatar.GetComponent<CoachStandPose>() == null)
-                        coachAvatar.AddComponent<CoachStandPose>(); // T자 자세 -> 서 있는 자세
+                    var ca = coachAvatar.GetComponentInChildren<Animator>();
+                    if (ca == null || !ca.isHuman || ca.runtimeAnimatorController == null)
+                    {
+                        if (coachAvatar.GetComponent<CoachStandPose>() == null)
+                            coachAvatar.AddComponent<CoachStandPose>(); // 구형 T자 자세 -> 서 있는 자세
+                    }
+                    else
+                    {
+                        ca.SetFloat("Speed", 0f);
+                        ca.SetBool("Grounded", true);
+                    }
                 }
             }
             catch (System.Exception ex)
@@ -121,14 +132,38 @@ public class TrainerAppear : MonoBehaviour
 
     void Start()
     {
-        var c = UiKit.MakeCanvas("TrainerSpeechCanvas", 40);
-        panel = UiKit.Panel(c.transform, new Vector2(1500, 190), new Vector2(0, 120), new Color(0.1f, 0.13f, 0.2f, 0.92f), new Vector2(0.5f, 0f)).gameObject;
-        label = UiKit.Label(panel.transform, font, "", 38, new Vector2(1420, 170), Vector2.zero, TextAnchor.MiddleLeft);
-        // 창 폭에 맞춰 늘어나게 해서, 창이 좁아도 글이 화면 밖으로 잘리지 않게 한다
-        var pr = (RectTransform)panel.transform; pr.anchorMin = new Vector2(0, 0); pr.anchorMax = new Vector2(1, 0); pr.pivot = new Vector2(0.5f, 0); pr.offsetMin = new Vector2(30, 260); pr.offsetMax = new Vector2(-30, 450); // 아래의 '질문하기' 버튼(~135)과 운동 중 큰 버튼(~240) 위로 올린다
-        var lr = label.rectTransform; lr.anchorMin = Vector2.zero; lr.anchorMax = Vector2.one; lr.offsetMin = new Vector2(24, 8); lr.offsetMax = new Vector2(-24, -8);
+        var c = UiKit.MakeCanvas("TrainerSpeechCanvas", 34);
+        panel = UiKit.RoundedPanel(c.transform, new Vector2(1140, 76), new Vector2(0, -166), Theme.WithAlpha(Theme.Surface, 0.92f), new Vector2(0.5f, 1f)).gameObject;
+        var pr = (RectTransform)panel.transform;
+        pr.pivot = new Vector2(0.5f, 1f);
+        pr.anchoredPosition = new Vector2(0f, -166f); // 상단 HUD(하단 y=-152)와 여백을 두고 아래에 깔끔하게 배치
+        UiKit.RoundedPanel(panel.transform, new Vector2(6, 52), new Vector2(-546, 0), Theme.AccentLine);
+        label = UiKit.Label(panel.transform, font, "", 30, new Vector2(1050, 66), new Vector2(12, 0), TextAnchor.MiddleLeft, Theme.Text);
         panel.SetActive(false);
-        trainer.SetActive(false);
+        // 새 블렌더 시범 전용 아바타(TrainerHuman_Demo: 좌석·허벅지 패드·바 그립 포함 150프레임 애니메이션) 로드
+        var modernDemo = Resources.Load<GameObject>("TrainerHuman_Demo") ?? Resources.Load<GameObject>("TrainerHuman");
+        if (modernDemo != null && machine != null)
+        {
+            if (trainer != null) trainer.SetActive(false);
+            Transform seat = null;
+            foreach (var tr in machine.GetComponentsInChildren<Transform>(true))
+                if (tr.name == "TrainerSeat") { seat = tr; break; }
+            var f = Vector3.ProjectOnPlane(machine.transform.forward, Vector3.up).normalized;
+            var pos = seat != null ? seat.position : machine.transform.position;
+            pos.y = machine.transform.position.y; // Blender Z=0 == 기구 바닥 높이(0.004)
+            var newTrainer = Instantiate(modernDemo, pos, Quaternion.LookRotation(f, Vector3.up));
+            newTrainer.name = "TrainerHuman_Demo";
+            var anim = newTrainer.GetComponentInChildren<Animator>();
+            if (anim != null && anim.isHuman) { anim.SetFloat("Speed", 0f); anim.SetBool("Grounded", true); }
+            newTrainer.AddComponent<DemoTrainerFix>().Init(machine.transform, seat);
+            trainer = newTrainer;
+            trainerAnim = anim;
+        }
+        else if (trainer != null && machine != null && trainer.GetComponent<DemoTrainerFix>() == null)
+        {
+            trainer.AddComponent<DemoTrainerFix>().Init(machine.transform, null);
+        }
+        if (trainer != null) trainer.SetActive(false);
         machine.enabled = false;
     }
 
@@ -159,7 +194,13 @@ public class TrainerAppear : MonoBehaviour
     void Appear()
     {
         trainer.SetActive(true);
-        if (trainerAnim != null) { trainerAnim.Rebind(); trainerAnim.Update(0f); }
+        if (trainerAnim != null)
+        {
+            trainerAnim.Rebind();
+            if (trainerAnim.HasState(0, Animator.StringToHash("LatPulldown_Demo")))
+                trainerAnim.Play("LatPulldown_Demo", 0, 0f);
+            trainerAnim.Update(0f);
+        }
         machine.enabled = true;
         machine.speed = 1f; // 직접 운동할 때 0으로 멈춰 둔 것을 되돌린다
         machine.Play("Pull", 0, 0f);
