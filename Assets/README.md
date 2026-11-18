@@ -27,6 +27,7 @@ Unity 6 (6000.6.7f1) / URP / Input System 기반의 1인칭 헬스장 프로젝�
 | `Assets/M/` | 직접 만든 Material (`GlassMat`, `SwitchMetalMat`, `SwitchLampMat` 등) |
 | `_blender/` (Assets 밖) | 캐릭터를 만든 Blender 스크립트와 `.blend` |
 | `Assets/Gym/FunctionalTrainer.fbx` | 다용도 케이블 머신(펑셔널 트레이너). `_blender/make_functional_trainer.py`로 생성 (가로 1.82 m, 깊이 1.39 m, 높이 2.3 m) |
+| `Assets/Gym/DeclineBench.fbx` | 디클라인(윗몸일으키기) 벤치, 다리 롤러 4개. `_blender/make_decline_bench.py`로 생성 (길이 1.61 m, 폭 0.72 m, 높이 0.99 m, 머리 쪽이 -X) |
 | `_backup_materials/` (Assets 밖) | 원본 Material 백업 |
 
 ## 3. 씬 구성 (SampleScene)
