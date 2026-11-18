@@ -37,6 +37,8 @@ public class GitAutoCommit : EditorWindow
     // ZIP으로 받은 폴더처럼 .git이 없을 때 GitHub 저장소와 연결하는 데 쓰는 값
     string remoteUrl = "https://github.com/bae-hyung-jin/AI-Gym.git";
     string remoteBranch = "main";
+    string workBranch = ""; // 연결한 뒤 이 이름으로 새 브랜치를 만들어 거기서 작업한다(비워 두면 기준 브랜치 그대로)
+    bool hasCommits = true;
 
     static string ProjectRoot => Directory.GetParent(Application.dataPath).FullName;
     static string PrefKey => "GitAutoCommit.RepoDir:" + ProjectRoot;
@@ -121,6 +123,14 @@ public class GitAutoCommit : EditorWindow
             return;
         }
 
+        if (!hasCommits)
+        {
+            EditorGUILayout.HelpBox("저장소는 만들어졌지만 아직 GitHub와 연결이 끝나지 않았어요(커밋이 없어요). 아래에서 연결을 마무리해 주세요. 마무리 전에는 커밋·푸시하지 마세요.", MessageType.Warning);
+            DrawConnectSection();
+            DrawLog();
+            return;
+        }
+
         DrawBranchSection();
         EditorGUILayout.Space();
         DrawCommitSection();
@@ -159,7 +169,9 @@ public class GitAutoCommit : EditorWindow
         EditorGUILayout.LabelField("이 폴더를 GitHub 저장소에 연결", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox("ZIP으로 받은 폴더처럼 .git이 없을 때 쓰세요. 파일은 지우거나 바꾸지 않고, GitHub의 기준 브랜치와 비교해 달라진 부분을 변경 사항으로 보여 줘요.", MessageType.Info);
         remoteUrl = EditorGUILayout.TextField("GitHub 주소", remoteUrl);
-        remoteBranch = EditorGUILayout.TextField("기준 브랜치", remoteBranch);
+        remoteBranch = EditorGUILayout.TextField("기준 브랜치(GitHub에 있는 것)", remoteBranch);
+        workBranch = EditorGUILayout.TextField("작업할 새 브랜치(선택)", workBranch);
+        EditorGUILayout.HelpBox("기준 브랜치는 GitHub에 이미 있는 이름(보통 main)이어야 해요. 새로 만들 브랜치 이름은 아래 '작업할 새 브랜치'에 쓰면 연결 뒤에 자동으로 만들어서 옮겨 줘요.", MessageType.None);
         if (GUILayout.Button("이 폴더를 저장소에 연결", GUILayout.Height(30)))
         {
             ConnectToRemote();
@@ -176,6 +188,9 @@ public class GitAutoCommit : EditorWindow
         { statusLog = "[안내] GitHub 주소를 https://… 또는 git@… 형태로 써 주세유."; return; }
         if (branch.Length == 0 || !GitIn(root, "check-ref-format", "--branch", branch).Ok)
         { statusLog = "[안내] 기준 브랜치 이름이 올바르지 않아요. 보통은 main이에요."; return; }
+        var work = workBranch.Trim();
+        if (work.Length > 0 && !GitIn(root, "check-ref-format", "--branch", work).Ok)
+        { statusLog = "[안내] 작업할 새 브랜치 이름이 올바르지 않아요. 공백·특수문자를 피해 주세요."; return; }
 
         if (!EditorUtility.DisplayDialog("이 폴더를 저장소에 연결할까요?",
             $"폴더: {root}\n\n여기에 .git을 만들고 아래 저장소의 '{branch}' 브랜치와 연결해요.\n{url}\n\n파일은 지우거나 바꾸지 않아요. 연결 뒤에는 GitHub와 달라진 파일이 변경 사항으로 보여요.\n(저장소 크기에 따라 가져오는 데 몇 분 걸릴 수 있어요.)",
@@ -204,7 +219,15 @@ public class GitAutoCommit : EditorWindow
 
             EditorUtility.DisplayProgressBar("Git 연결", $"GitHub에서 '{branch}' 가져오는 중 (git fetch)… 시간이 걸려유", 0.5f);
             var fetch = GitIn(root, "fetch", "origin", branch);
-            if (!fetch.Ok) { Fail("git fetch (주소·권한·브랜치 이름을 확인해 주세요)", fetch); return; }
+            if (!fetch.Ok)
+            {
+                var heads = GitIn(root, "ls-remote", "--heads", "origin").output; // 어떤 브랜치가 있는지 알려 준다
+                var names = new List<string>();
+                foreach (var line in heads.Split('\n')) { var i = line.IndexOf("refs/heads/"); if (i >= 0) names.Add(line.Substring(i + "refs/heads/".Length).Trim()); }
+                var hint = names.Count > 0 ? "\nGitHub에 있는 브랜치: " + string.Join(", ", names) : "";
+                Fail("git fetch (주소·권한·브랜치 이름을 확인해 주세요)", new GitResult { code = fetch.code, output = fetch.output, error = fetch.error + hint });
+                return;
+            }
             if (!GitIn(root, "rev-parse", "--verify", "origin/" + branch).Ok)
             { Fail("기준 브랜치 확인", new GitResult { code = 1, error = $"origin/{branch} 를 찾지 못했어요. 브랜치 이름을 확인해 주세요." }); return; }
             log.AppendLine($"- GitHub의 '{branch}' 브랜치를 가져왔슈.");
@@ -216,6 +239,13 @@ public class GitAutoCommit : EditorWindow
                 if (!reset.Ok) { Fail("git reset", reset); return; }
                 GitIn(root, "branch", "--set-upstream-to=origin/" + branch, branch);
                 log.AppendLine("- 파일은 그대로 두고 기록만 GitHub와 맞췄슈.");
+            }
+
+            if (work.Length > 0 && work != branch)
+            {
+                var sw = GitIn(root, "switch", "-c", work); // 기준 브랜치에서 갈라져 나온 새 브랜치로 옮긴다(파일은 그대로)
+                if (!sw.Ok) { Fail($"새 브랜치 '{work}' 만들기", sw); return; }
+                log.AppendLine($"- 새 브랜치 '{work}'를 만들고 옮겼슈.");
             }
         }
         finally { EditorUtility.ClearProgressBar(); }
@@ -275,6 +305,7 @@ public class GitAutoCommit : EditorWindow
         if (!isRepo) { branchLabels = new string[0]; currentBranch = ""; repoTop = ""; Repaint(); return; }
 
         repoTop = Git("rev-parse", "--show-toplevel").output.Trim().Replace('/', Path.DirectorySeparatorChar);
+        hasCommits = Git("rev-parse", "--verify", "HEAD").Ok;
         currentBranch = Git("branch", "--show-current").output.Trim();
 
         var local = new HashSet<string>();
